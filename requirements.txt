@@ -1,0 +1,7 @@
+# CAD toolchain -- only needed to REGENERATE the STEP/STL/preview files.
+# The generated files in cad/step, cad/stl, cad/previews are committed, so you
+# can open/print them without installing any of this.
+cadquery>=2.4     # parametric CAD, exports STEP + STL (built on OpenCASCADE)
+trimesh>=4.0      # loads STL for the preview renderer
+numpy>=1.24       # geometry + preview shading
+matplotlib>=3.7   # renders the preview PNGs (headless / Agg)
