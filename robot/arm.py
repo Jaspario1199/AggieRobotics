@@ -1,15 +1,26 @@
 """
-Phase 3 — fold arm + swept-volume study (parametric).
+Fold-arm kinematics -- the SINGLE SOURCE OF TRUTH for the robot layout.
 
-Models the shoulder (dual pivot blocks), the telescoping slide + link, and the
-belt-head carriage, then renders the head GHOSTED through its full swing over the
-chassis to prove the swept path clears the corner drive wheels (the tight spot the
-phase-1 layout flagged). Run:  python -m robot.arm
+Post-gate revision (gate G7 caught 0.0 mm head-wheel clearance; see
+docs/DESIGN.md "Gate-driven refinement"):
 
-Key result to read off the render: the head swings in the CENTRAL fore-aft plane
-(x≈0), so it passes BETWEEN the corner wheels; it only gets low near the wheels at
-the two end poses, where the ~210 mm head sits in the ~240 mm inter-wheel gap
-(~15 mm/side clearance). World frame: X right, +Y forward, Z up; floor at z=0.
+  * The head is ~227 mm wide; the gap between the corner wheels is ~196 mm, so
+    the head can NEVER pass between the wheels -- every swing must clear them
+    VERTICALLY. The pivot therefore moved forward and up to (y=155, z=221).
+  * ARM_LEN = 0: the carriage/pivot sits at the head's rear face, so the stowed
+    head tip (y = 155 - 333 = -178) stays inside the 15" cube (gate G8).
+  * SLIDE REMOVED. A straight arm from a high pivot cannot reach the REAR floor:
+    the head mid-section would pass z ~= 34 mm over the rear wheels (top 82.5) --
+    provably, bottom(y=-136) >= 92 requires pitch >= -0.7 deg, i.e. horizontal.
+    Rear floor intake is instead a 180 deg yaw of the holonomic base (~0.3 s).
+    The stow pose still works the rear directly: mouth faces rearward at
+    ~200 mm height for rear LAUNCH / HOLD / feed.
+
+Poses:
+  STOW  = 180 deg -- start-legal fold, head inverted over the deck, mouth rear.
+  FRONT = -25 deg -- mouth centre at ball height (~80 mm), ramp at the floor.
+
+Run `python -m robot.arm` to render the swept study.
 """
 
 from __future__ import annotations
@@ -27,114 +38,111 @@ HERE = os.path.dirname(__file__)
 PREV = os.path.join(HERE, "previews")
 os.makedirs(PREV, exist_ok=True)
 
-# --- chassis context (from phase 2) ---------------------------------------
+# --- chassis context (matches robot/chassis.py) ----------------------------
 FRAME = 360.0
-DECK_Z = 25.0            # deck top height
 WHEEL_D = 82.5
-CORNER = FRAME / 2 - 44  # wheel/motor corner offset (=136)
+WHEEL_T = 25.0
+CORNER = FRAME / 2 - 44          # wheel centres at (+/-136, +/-136)
+DECK_Z = 25.0
 
-# --- arm parameters (mm) --------------------------------------------------
-PIVOT = (0.0, 0.0, 125.0)   # shoulder axis (x,y,z); axis along X — raised for clearance
-BLOCK_X = 118.0             # pivot bearing blocks sit just outside the head width
-ARM_LEN = 120.0             # pivot -> carriage, retracted
-SLIDE = 150.0               # telescoping stroke
-HEAD = (210.0, 180.0, 130.0)  # belt-head envelope (X, Y-along-arm, Z)
+# --- head envelope (from the cad/ assembly, gates-verified) ----------------
+HEAD_W = 227.0                   # across belts (deck width 2 x 113.5)
+HEAD_ALONG = 333.0               # rear face -> flare tip + flywheel allowance
+HEAD_N_LO, HEAD_N_HI = -93.0, 128.0   # normal extents about the channel plane
+HEAD_N = HEAD_N_HI - HEAD_N_LO
+HEAD_N_CTR = (HEAD_N_HI + HEAD_N_LO) / 2
 
-# fold angles (deg) about +X, dir=(0,cos,sin): -40 front-down … +220 rear-down
-STOW, FRONT, REAR = 8.0, -40.0, 220.0
+# --- arm ------------------------------------------------------------------
+PIVOT = (0.0, 155.0, 221.0)      # shoulder axis (along X)
+STOW = 180.0                     # start pose (in-cube), mouth rearward
+FRONT = -25.0                    # floor-intake / forward-launch pose
+SWEEP = list(range(int(FRONT), int(STOW) + 1, 15)) + [STOW]
 
-
-def _box(dx, dy, dz, c=(0, 0, 0)):
-    return cq.Workplane("XY").box(dx, dy, dz).translate(c)
-
-
-def _cyl(d, h, c=(0, 0, 0), axis="Z"):
-    w = cq.Workplane("XY").circle(d / 2).extrude(h).translate((0, 0, -h / 2))
-    if axis == "X":
-        w = w.rotate((0, 0, 0), (0, 1, 0), 90)
-    elif axis == "Y":
-        w = w.rotate((0, 0, 0), (1, 0, 0), 90)
-    return w.translate(c)
+CUBE = 381.0                     # 15" start cube
 
 
-def _context():
-    """Non-moving stuff: deck outline, 4 corner wheels, the 2 pivot blocks."""
-    P = []
-    P.append(("Deck", _box(FRAME - 20, FRAME - 20, 6, (0, 0, DECK_Z - 3)), "#586170", 1.0))
+def head_at(phi: float) -> cq.Workplane:
+    """Head envelope box at fold angle phi (deg about +X through the pivot)."""
+    box = (cq.Workplane("XY")
+           .box(HEAD_W, HEAD_ALONG, HEAD_N)
+           .translate((0, HEAD_ALONG / 2, HEAD_N_CTR)))
+    return box.rotate((0, 0, 0), (1, 0, 0), phi).translate(PIVOT)
+
+
+def wheels() -> list[cq.Workplane]:
+    out = []
     for (sx, sy) in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
         ang = 45 if sx * sy > 0 else -45
-        w = (_cyl(WHEEL_D, 25, axis="Y").rotate((0, 0, 0), (0, 0, 1), ang)
+        w = (cq.Workplane("XY").circle(WHEEL_D / 2).extrude(WHEEL_T)
+             .translate((0, 0, -WHEEL_T / 2))
+             .rotate((0, 0, 0), (1, 0, 0), 90)
+             .rotate((0, 0, 0), (0, 0, 1), ang)
              .translate((sx * CORNER, sy * CORNER, WHEEL_D / 2)))
-        P.append(("Corner wheel (x4)" if (sx, sy) == (1, 1) else "_w", w, "#23262b", 1.0))
+        out.append(w)
+    return out
+
+
+def context() -> list[tuple[str, cq.Workplane, str]]:
+    """Non-moving stuff for renders: deck, wheels, pivot tower."""
+    parts = [("Deck", cq.Workplane("XY").box(FRAME - 20, FRAME - 20, 6)
+              .translate((0, 0, DECK_Z)), "#586170")]
+    for i, w in enumerate(wheels()):
+        parts.append(("Corner wheel (x4)" if i == 0 else "_w", w, "#23262b"))
     for sx in (1, -1):
-        blk = _box(26, 44, PIVOT[2] - DECK_Z + 20,
-                   (sx * BLOCK_X, PIVOT[1], (DECK_Z + PIVOT[2]) / 2))
-        P.append(("Pivot blocks" if sx > 0 else "_b", blk, "#8f9bad", 1.0))
-    P.append(("Pivot shaft", _cyl(12, 2 * BLOCK_X + 20, PIVOT, axis="X"), "#e0872f", 1.0))
-    return P
-
-
-def _arm(slide):
-    """Arm+head in local frame: pivot at origin, arm along +Y."""
-    L = ARM_LEN + slide
-    A = []
-    A.append(_box(50, L, 44, (0, L / 2, 0)))                       # slide/link
-    A.append(_box(*HEAD, (0, L + HEAD[1] / 2, 0)))                 # head
-    A.append(_cyl(90, 130, (0, L + HEAD[1], 0), axis="X"))         # flywheel
-    return A
-
-
-def _place(solids, phi):
-    return [s.rotate((0, 0, 0), (1, 0, 0), phi).translate(PIVOT) for s in solids]
+        blk = (cq.Workplane("XY").box(24, 40, PIVOT[2] - DECK_Z)
+               .translate((sx * (HEAD_W / 2 + 14), PIVOT[1],
+                           (DECK_Z + PIVOT[2]) / 2)))
+        parts.append(("Pivot tower" if sx > 0 else "_t", blk, "#8f9bad"))
+    parts.append(("Pivot shaft",
+                  cq.Workplane("XY").circle(6).extrude(HEAD_W + 60)
+                  .translate((0, 0, -(HEAD_W + 60) / 2))
+                  .rotate((0, 0, 0), (0, 1, 0), 90).translate(PIVOT), "#e0872f"))
+    return parts
 
 
 def _add(ax, solid, color, alpha, acc):
-    verts, tris = solid.val().tessellate(0.5)
-    V = np.array([[p.x, p.y, p.z] for p in verts]); F = np.array(tris)
+    verts, tris = solid.val().tessellate(0.6)
+    V = np.array([[p.x, p.y, p.z] for p in verts])
+    F = np.array(tris)
     tri = V[F]
     n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
     nl = np.linalg.norm(n, axis=1, keepdims=True); nl[nl == 0] = 1; n = n / nl
-    Ld = np.array([0.3, -0.5, 0.8]); Ld = Ld / np.linalg.norm(Ld)
-    sh = 0.45 + 0.55 * np.clip(np.abs(n @ Ld), 0, 1)
+    L = np.array([0.3, -0.5, 0.8]); L = L / np.linalg.norm(L)
+    sh = 0.45 + 0.55 * np.clip(np.abs(n @ L), 0, 1)
     base = np.array([int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)])
-    ax.add_collection3d(Poly3DCollection(tri, facecolors=np.clip(sh[:, None] * base, 0, 1),
-                                         edgecolors="none", alpha=alpha))
+    ax.add_collection3d(Poly3DCollection(
+        tri, facecolors=np.clip(sh[:, None] * base, 0, 1),
+        edgecolors="none", alpha=alpha))
     acc.append(V)
 
 
-def render():
+def render() -> str:
     fig = plt.figure(figsize=(7.2, 6.6))
     ax = fig.add_subplot(111, projection="3d")
     acc = []
     legend = {}
-    for (n, s, c, a) in _context():
-        _add(ax, s, c, a, acc)
+    for (n, s, c) in context():
+        _add(ax, s, c, 1.0, acc)
         if not n.startswith("_"):
             legend[n] = c
-
-    # Ghost the swing through the transition (slide retracted while swinging).
-    ghosts = [-40, 10, 60, 110, 160, 220]
-    for phi in ghosts:
-        for s in _place(_arm(0.0), phi):
-            _add(ax, s, "#3d6fb4", 0.16, acc)
+    for phi in SWEEP[1:-1]:
+        _add(ax, head_at(phi), "#3d6fb4", 0.10, acc)
     legend["Head swept path"] = "#3d6fb4"
-    # Solid at the two deployed ends (slide extended to the floor).
-    for phi in (FRONT, REAR):
-        for s in _place(_arm(SLIDE), phi):
-            _add(ax, s, "#e0872f", 0.9, acc)
-    legend["Deployed (front + rear)"] = "#e0872f"
+    for phi in (FRONT, STOW):
+        _add(ax, head_at(phi), "#e0872f", 0.85, acc)
+    legend["End poses (front / stow)"] = "#e0872f"
 
-    P = np.vstack(acc)
-    ctr = np.array([0, 0, 190]); r = 330
-    ax.set_xlim(-r, r); ax.set_ylim(ctr[1] - r, ctr[1] + r); ax.set_zlim(0, 2 * r)
+    ax.set_xlim(-420, 420); ax.set_ylim(-350, 490); ax.set_zlim(0, 840)
     try:
         ax.set_box_aspect((1, 1, 1))
     except Exception:
         pass
-    ax.view_init(elev=14, azim=-62)
+    ax.view_init(elev=12, azim=-62)
     ax.set_axis_off()
-    ax.set_title("Phase 3 — fold arm swept-volume (clears the corner wheels)", fontsize=12, pad=0)
-    ax.legend(handles=[Patch(facecolor=c, edgecolor="none", label=l) for l, c in legend.items()],
+    ax.set_title("Fold-arm swept study — head always clears the wheels",
+                 fontsize=12, pad=0)
+    ax.legend(handles=[Patch(facecolor=c, edgecolor="none", label=l)
+                       for l, c in legend.items()],
               loc="upper left", fontsize=8, framealpha=0.9)
     fig.tight_layout()
     path = os.path.join(PREV, "arm_swept.png")

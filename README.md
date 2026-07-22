@@ -50,10 +50,10 @@ generated files are committed, so you can open/print without installing anything
 | Part | What it is | Print | Material |
 |------|-----------|-------|----------|
 | [`belt_pulley`](cad/parts/belt_pulley.py) | Flanged traction pulley, ½" hex bore, lightened | ×4 | PLA/PETG |
-| [`drive_belt`](cad/parts/drive_belt.py) | The traction loop the ball rides on (best a COTS/urethane belt; TPU if printed) | ×2 | TPU 95A / COTS |
+| [`drive_belt`](cad/parts/drive_belt.py) | The traction loop the ball rides on — 6 mm thick so the 4 mm squeeze stays inside the belt (rigid ball) | ×2 | TPU 95A (printed — VEXU-legal fabricated part) |
 | [`accel_plate`](cad/parts/accel_plate.py) | Grid-perforated deck (top + bottom); 4 vertical pulley bores (rear = tension slots); **flip-symmetric** | ×2 | PLA/PETG |
-| [`throat_lip`](cad/parts/throat_lip.py) | Smooth flared muzzle guide — funnels intake, clean exit on launch | ×2 | PLA/PETG |
-| [`front_plow`](cad/parts/front_plow.py) | Raked push blade **and** front cross-brace, in one part | ×1 | PLA/PETG |
+| [`throat_lip`](cad/parts/throat_lip.py) | Flared TOP mouth guide — bolts to the deck grid, zero aperture intrusion | ×1 | PLA/PETG |
+| [`front_plow`](cad/parts/front_plow.py) | Bottom ramp + push blade + bottom mouth guide in one part (chamfered — no step in the ball path) | ×1 | PLA/PETG |
 | [`motor_plate`](cad/parts/motor_plate.py) | V5 Smart Motor mount, geared up to a drive-pulley shaft (1.5" centre distance) | ×2 | PLA/PETG |
 
 ## Built to the VEX system

@@ -51,10 +51,13 @@ TRIBALL_DIA = TRIBALL_TIP  # back-compat alias (renderers use TRIBALL_DIA/2)
 
 # --- Belt INTAKE head geometry (robot role: intake / hold / push; launch = flywheel)
 PLATE_THK = 6.0           # mm, deck (side-plate) thickness
-BALL_COMPRESSION = 6.0    # mm, TPU belt deform onto the RIGID body (belt yields, not ball)
-BELT_GAP = TRIBALL_BODY - 2 * BALL_COMPRESSION  # mm, inner-run separation (~98)
+# Rigid-ball constraint: only the TPU belt can deform, so the squeeze must fit
+# inside the belt: BALL_COMPRESSION <= BELT_THK - 1, which also guarantees the
+# rigid drum behind the belt clears the ball body by >= 2 mm per side.
+BALL_COMPRESSION = 4.0    # mm, TPU belt deform onto the RIGID body (belt yields, not ball)
+BELT_GAP = TRIBALL_BODY - 2 * BALL_COMPRESSION  # mm, inner-run separation (102)
 BELT_WIDTH = 120.0        # mm, belt width >= body so it grips the whole 110 mm band
-BELT_THK = 4.0            # mm, TPU belt thickness incl. tread
+BELT_THK = 6.0            # mm, TPU belt thickness incl. tread (> compression + 1)
 BARREL_LEN = 110.0        # mm, pulley centre-to-centre (compact intake engagement)
 PULLEY_PITCH_DIA = 45.0   # mm, traction diameter the belt rides on
 PULLEY_FLANGE_DIA = 55.0  # mm, belt-retaining flange OD

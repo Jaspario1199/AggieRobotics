@@ -1,54 +1,75 @@
 """
-Front plow -- the PUSH tool and the front cross-brace, in one part.
+Front plow / ramp -- push blade, intake ramp, and bottom mouth guide in one part.
 
-When the match wants a ball SHOVED through a contested zone instead of launched,
-you leave the belts off and just drive forward: this raked blade gets under the
-tri-ball and controls it low. Its two end tabs bolt to the front grid holes of
-both side plates, tying them into a rigid frame -- so it doubles as the front
-cross-brace of the accelerator.
+Mounted on the BOTTOM deck's forward edge, plate on the deck's INNER (channel)
+face so the ramp surface flows smoothly onto the channel floor -- a ball rolling
+up the blade crosses onto the plate top and into the channel with no step UP
+(only a 4 mm drop off the plate's back edge, harmless). It is also the PUSH
+tool: belts off, drive forward, the raked blade gets under the tri-ball.
 
-Rounded leading edge so it slides under the ball cleanly. Print blade-face-down
-(tabs up); no supports. Structural PLA/PETG, >=4 walls -- this part takes impact.
+  * MOUNT PLATE -- flat on the deck inner face; 4 vertical bolt holes on the
+    deck's 0.5" grid (use low-profile screws inside the channel).
+  * BLADE       -- raked down-forward at PLOW_DEG from the plate's forward-top
+    edge; its top surface is continuous with the plate top.
+
+The plate intrudes 4 mm into the mouth aperture at the bottom -- accounted for
+in gate G5's aperture check (still >=6 mm clearance over the ball tip).
+
+Print plate-down, blade up (the shallow rake needs no supports). PETG, 4 walls,
+40%+ infill -- this part takes impact.
 """
 
 from __future__ import annotations
 
 import cadquery as cq
 
-from ..params import SIDE_INNER_HALF, PLOW_DEG, VEX_HOLE
+from ..params import (
+    SIDE_INNER_HALF, PLOW_DEG, VEX_HOLE, VEX_GRID, BARREL_LEN,
+)
 
-SPAN = 2 * SIDE_INNER_HALF   # blade width (fits between the plates)
-BLADE_LEN = 62.0
-BLADE_THK = 6.0
-LIP_H = 16.0                 # up-turned back lip = cross-brace / ball backstop
-EAR_THK = 6.0
-TAB_Y = 30.0
-TAB_H = 34.0
+SPAN = 2 * SIDE_INNER_HALF      # blade width (170)
+PL_THK = 4.0                    # mount-plate thickness (= aperture intrusion)
+PL_Y = 25.0                     # mount-plate reach back over the deck
+BLADE_LEN = 72.0                # blade length along its face
+BOLT_X = 3 * VEX_GRID           # bolt columns at +/-38.1
+
+EDGE = BARREL_LEN / 2 + 30.0
+BOLT_ROWS = [5 * VEX_GRID - EDGE, 6 * VEX_GRID - EDGE]
 
 
 def make() -> cq.Workplane:
-    blade = cq.Workplane("XY").box(SPAN, BLADE_LEN, BLADE_THK, centered=(True, False, True))
-    # Round the leading edge so it slides under the ball.
-    try:
-        blade = blade.edges(">Y and |X").fillet(BLADE_THK / 2 - 0.4)
-    except Exception:
-        pass
-    blade = blade.rotate((0, 0, 0), (1, 0, 0), -PLOW_DEG)
+    # Mount plate on the deck inner face: y -PL_Y..0, z 0..PL_THK.
+    plate = (cq.Workplane("XY")
+             .box(SPAN, PL_Y, PL_THK, centered=(True, False, False))
+             .translate((0, -PL_Y, 0)))
 
-    lip = cq.Workplane("XY").box(SPAN, BLADE_THK, LIP_H, centered=(True, True, False))
-    plow = blade.union(lip)
+    # Blade: same thickness slab, hinged about the plate's forward-TOP edge
+    # (y=0, z=PL_THK) and raked down-forward so its top surface continues from
+    # the plate top. The rotation swings its rear-bottom corner back into the
+    # plate, fusing the two solids.
+    blade = (cq.Workplane("XY")
+             .box(SPAN, BLADE_LEN, PL_THK, centered=(True, False, False)))
+    blade = blade.rotate((-1, 0, PL_THK), (1, 0, PL_THK), -PLOW_DEG)
+    plow = plate.union(blade)
 
-    for s in (+1, -1):
-        tab = cq.Workplane("XY").box(EAR_THK, TAB_Y, TAB_H, centered=(True, False, False))
-        tab = tab.translate((s * (SPAN / 2 - EAR_THK / 2), -4.0, 0))
-        plow = plow.union(tab)
+    # Trim the sliver the top-edge hinge swings below the plate plane (it would
+    # clash 15 mm^3 into the deck: gate G2 baseline finding).
+    plow = plow.cut(cq.Workplane("XY").box(600, 600, 600)
+                    .translate((0, -300, -300)))
 
-    for s in (+1, -1):
-        x0 = s * (SPAN / 2 - EAR_THK - 1.0)
-        for (hy, hz) in [(6.0, TAB_H - 9.0), (6.0, TAB_H - 22.0)]:
-            cutter = (cq.Workplane("YZ").workplane(offset=x0)
-                      .center(hy, hz).circle(VEX_HOLE / 2).extrude(s * (EAR_THK + 3.0)))
-            plow = plow.cut(cutter)
+    # 45-deg chamfer on the plate's channel-side edge so the ball rolls over a
+    # ramp instead of a 4 mm step (gate G3 baseline finding).
+    ch = (cq.Workplane("YZ").workplane(offset=-(SPAN / 2 + 1))
+          .polyline([(-PL_Y, PL_THK), (-PL_Y + PL_THK, PL_THK), (-PL_Y, 0)])
+          .close().extrude(SPAN + 2))
+    plow = plow.cut(ch)
+
+    # Vertical bolt holes on the deck grid.
+    for hx in (BOLT_X, -BOLT_X):
+        for hy in BOLT_ROWS:
+            hole = (cq.Workplane("XY").circle(VEX_HOLE / 2)
+                    .extrude(PL_THK + 2).translate((hx, hy, -1)))
+            plow = plow.cut(hole)
 
     return plow
 

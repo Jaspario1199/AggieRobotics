@@ -23,19 +23,23 @@ from ..params import (
 from ..vexlib import hex_across_corners
 
 FLANGE_THK = 4.0
-WIN_R = 15.0           # lightening-window ring radius
-WIN_D = 11.0           # lightening-window diameter
+DRUM_EXTRA = 5.0       # drum length beyond the belt (2.5 mm axial float per side)
+WIN_R = 14.8           # lightening-window ring radius
+WIN_D = 9.5            # lightening-window diameter
+# Total pulley length (drum + both flanges). Placement code imports this so the
+# flanges land OUTBOARD of the ball's reach (gate G5 checks the z-separation).
+TOTAL_LEN = BELT_WIDTH + DRUM_EXTRA + 2 * FLANGE_THK
 
 
 def make() -> cq.Workplane:
     rp = PULLEY_PITCH_DIA / 2.0
     rf = PULLEY_FLANGE_DIA / 2.0
-    total = BELT_WIDTH + 2 * FLANGE_THK
+    total = TOTAL_LEN
 
     p = (
         cq.Workplane("XY")
         .circle(rf).extrude(FLANGE_THK)
-        .faces(">Z").workplane().circle(rp).extrude(BELT_WIDTH)
+        .faces(">Z").workplane().circle(rp).extrude(BELT_WIDTH + DRUM_EXTRA)
         .faces(">Z").workplane().circle(rf).extrude(FLANGE_THK)
     )
 

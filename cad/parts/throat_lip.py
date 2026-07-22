@@ -1,54 +1,75 @@
 """
-Throat lip -- the smooth flared mouth at the muzzle of the barrel.
+Throat lip -- the flared TOP guide at the mouth of the barrel.
 
-One at the top and one at the bottom of the front opening. On PULL it funnels the
-tri-ball into the belt channel; on LAUNCH it gives the ball a clean, guided exit
-so it leaves straight. A gentle flared arc, not a hard edge, so the foam ball
-never snags.
+One printed part, mounted on the TOP deck's forward edge (the bottom of the
+mouth is handled by the front_plow ramp). Three fused features:
 
-Modelled as a quarter-arc band spanning between the side plates, with a slotted
-mounting flange at each end that bolts to the plate's front grid holes. The part
-is symmetric -- print two and flip one for the bottom lip. Print on a flange
-face; the short arc overhangs mildly (a couple of supports or split-print). PLA/PETG.
+  * MOUNT PLATE  -- lies flat on the deck's top face; 4 vertical bolt holes that
+    land exactly on the deck's 0.5" grid rows, so screws drop straight through
+    plate + deck into nylocks.
+  * EDGE WALL    -- drops over the deck's forward edge, flush against it. Its
+    lowest face is EXACTLY at the deck's inner (channel) plane, so the lip adds
+    ZERO intrusion into the mouth aperture (gate G5 checks this).
+  * FLARE ARC    -- quarter-arc tangent to the channel plane at the wall, rising
+    up-forward. Funnels a tumbling tri-ball down into the channel; its inner
+    surface never dips below the channel plane, so nothing snags.
+
+Print plate-down; the flare overhangs toward vertical at its tip -- use a few
+supports under the last ~15 mm of arc, or split-print. PETG, 4 walls.
 """
 
 from __future__ import annotations
 
 import cadquery as cq
 
-from ..params import SIDE_INNER_HALF, VEX_HOLE
+from ..params import (
+    SIDE_INNER_HALF, PLATE_THK, BARREL_LEN, VEX_HOLE, VEX_GRID,
+)
 
-RI = 38.0                       # inner arc radius
-RO = 41.0                       # outer arc radius
-W = 2 * SIDE_INNER_HALF - 2.0   # span between the plates
-EAR_THK = 5.0
-FLANGE_Y0 = -8.0
-FLANGE_Y1 = 42.0
-FLANGE_Z = 8.0                  # +/- half-height of the mounting flange
+W = 2 * SIDE_INNER_HALF - 2.0   # width across the mouth (168)
+RI = 38.0                       # flare inner radius
+RO = 41.0                       # flare outer radius (3 mm wall)
+PL_THK = 4.0                    # mount-plate thickness
+PL_Y = 25.0                     # mount-plate reach back over the deck
+WALL_Y = 3.0                    # edge-wall thickness (forward of the deck edge)
+BOLT_X = 3 * VEX_GRID           # bolt columns at +/-38.1 (clear of the bores)
+
+# Deck forward edge (world +Y); local y=0 is that edge, local z=0 the deck top.
+EDGE = BARREL_LEN / 2 + 30.0
+BOLT_ROWS = [5 * VEX_GRID - EDGE, 6 * VEX_GRID - EDGE]   # grid rows on the deck
 
 
 def make() -> cq.Workplane:
-    # Quarter-arc band (front-up flare): keep y>=0 and z>=0 of a tube.
-    lip = (cq.Workplane("YZ").workplane(offset=-W / 2)
-           .circle(RO).circle(RI).extrude(W))
-    below = cq.Workplane("XY").box(4 * RO, 4 * RO, 200).translate((0, 0, -100))
-    back = cq.Workplane("XY").box(4 * RO, 200, 4 * RO).translate((0, -100, 0))
-    lip = lip.cut(below).cut(back)
+    # Mount plate on the deck top: y -PL_Y..0, z 0..PL_THK.
+    plate = (cq.Workplane("XY")
+             .box(W, PL_Y, PL_THK, centered=(True, False, False))
+             .translate((0, -PL_Y, 0)))
 
-    # Mounting flange at each end.
-    for s in (+1, -1):
-        flange = cq.Workplane("XY").box(
-            EAR_THK, FLANGE_Y1 - FLANGE_Y0, 2 * FLANGE_Z)
-        flange = flange.translate(
-            (s * (W / 2 - EAR_THK / 2), (FLANGE_Y0 + FLANGE_Y1) / 2, 0))
-        lip = lip.union(flange)
+    # Edge wall over the deck edge: y 0..WALL_Y, z -PLATE_THK..PL_THK.
+    # Its bottom (-PLATE_THK) sits exactly at the deck's inner/channel plane.
+    wall = (cq.Workplane("XY")
+            .box(W, WALL_Y, PLATE_THK + PL_THK, centered=(True, False, False))
+            .translate((0, 0, -PLATE_THK)))
 
-    # Two bolt holes per flange (cut through both ends at once, in flange-only
-    # material well inboard of the arc foot).
-    for gy in (8.0, 28.0):
-        cutter = (cq.Workplane("YZ").workplane(offset=-W)
-                  .center(gy, 0).circle(VEX_HOLE / 2).extrude(2 * W))
-        lip = lip.cut(cutter)
+    # Flare arc: ring centered (y=WALL_Y-1, z=RO-PLATE_THK) so the OUTER surface
+    # is tangent to the channel plane (z=-PLATE_THK) -- zero intrusion. Keep the
+    # quadrant y>=center, z<=center; full-size cut boxes (no sliver rings).
+    cy, cz = WALL_Y - 1.0, RO - PLATE_THK
+    flare = (cq.Workplane("YZ").workplane(offset=-W / 2)
+             .center(cy, cz).circle(RO).circle(RI).extrude(W))
+    flare = flare.cut(cq.Workplane("XY").box(600, 600, 600)
+                      .translate((0, cy - 300, 0)))
+    flare = flare.cut(cq.Workplane("XY").box(600, 600, 600)
+                      .translate((0, 0, cz + 300)))
+
+    lip = plate.union(wall).union(flare)
+
+    # Vertical bolt holes on the deck grid (columns +/-BOLT_X, two rows).
+    for hx in (BOLT_X, -BOLT_X):
+        for hy in BOLT_ROWS:
+            hole = (cq.Workplane("XY").circle(VEX_HOLE / 2)
+                    .extrude(PL_THK + 2).translate((hx, hy, -1)))
+            lip = lip.cut(hole)
 
     return lip
 

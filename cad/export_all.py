@@ -61,11 +61,11 @@ def _place_accelerator():
     plow = importlib.import_module("cad.parts.front_plow").make()
     motor = importlib.import_module("cad.parts.motor_plate").make()
 
-    PLEN = P.BELT_WIDTH + 2 * bp_mod.FLANGE_THK              # pulley length (vertical)
+    PLEN = bp_mod.TOTAL_LEN                                  # pulley length (vertical)
     YB = P.BARREL_LEN / 2.0                                  # muzzle/breach offset (Y)
     XP = P.BELT_GAP / 2.0 + P.PULLEY_PITCH_DIA / 2.0 + P.BELT_THK  # pulley offset (X)
-    XG = P.BELT_GAP / 2.0                                    # inner belt surface (grip)
     ZH = P.SIDE_INNER_HALF                                   # deck half-gap (Z)
+    EDGE = P.BARREL_LEN / 2.0 + 30.0                         # deck forward edge (Y)
 
     def deck(wp):
         # plate local (X=barrel/2 dir, Y=cross dir) -> world (Y=barrel, X=cross)
@@ -90,16 +90,22 @@ def _place_accelerator():
         bw = belt.rotate((0, 0, 0), (0, 1, 0), 90).translate((sx * XP, 0, 0))
         named.append((lbl, bw, "#3b3f47"))
 
-    # Two flared throat lips at the muzzle front edge (top + bottom).
-    named.append(("Throat lip (x2)", lip.translate((0, YB + 30, ZH)), "#41b06a"))
-    named.append(("_lip2", lip.mirror("XY").translate((0, YB + 30, -ZH)), "#41b06a"))
+    # Throat lip (top guide): plate on the top deck's TOP face at the edge.
+    named.append(("Throat lip (top)",
+                  lip.translate((0, EDGE, ZH + P.PLATE_THK)), "#41b06a"))
 
-    # Front plow at the muzzle floor (push mode + cross-brace).
-    named.append(("Front plow", plow.translate((0, YB + 34, -ZH + 2)), "#c24234"))
+    # Front plow / ramp (bottom guide + push blade): plate on the bottom deck's
+    # INNER face so the ramp flows onto the channel floor.
+    named.append(("Front plow / ramp",
+                  plow.translate((0, EDGE, -ZH)), "#c24234"))
 
-    # V5 motor plate above the top deck, geared to a rear drive pulley.
+    # V5 motor plates on the top deck (bolted, contact), geared to the two rear
+    # drive-pulley shafts; the motor bore overhangs the rear edge.
     named.append(("V5 motor plate (x2)",
-                  motor.translate((-XP, -YB - P.GEAR_CD, ZH + P.PLATE_THK + 10)),
+                  motor.translate((-XP, -YB - P.GEAR_CD, ZH + P.PLATE_THK)),
+                  "#586170"))
+    named.append(("_motor_R",
+                  motor.translate((+XP, -YB - P.GEAR_CD, ZH + P.PLATE_THK)),
                   "#586170"))
 
     ball = ((0.0, -8.0, -ZH + P.TRIBALL_DIA / 2.0), P.TRIBALL_DIA / 2.0)

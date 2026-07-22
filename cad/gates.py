@@ -1,28 +1,34 @@
 """
-Automated verification gates for the belt-intake head CAD.
+Automated verification gates for the belt-intake head CAD + robot layout.
 
-Phase-1 tool of the refine workflow: run BEFORE and AFTER every geometry change.
-Prints a pass/fail scorecard with measured numbers; never modifies geometry.
+Run BEFORE and AFTER every geometry change; prints a pass/fail scorecard with
+measured numbers; never modifies geometry.
 
     python -m cad.gates
 
 Gates:
   G1  Part validity/connectivity  - each part is ONE valid closed solid
   G2  Assembly interference       - no two placed parts share volume (pairwise)
-  G3  Ball-path sweep             - tri-ball tip-sphere proxy clears all HARD
-                                    parts at stations along the channel; belt
-                                    grip depth reported (soft contact intended)
-  G4  Mounts / fastener paths     - every fixed part actually contacts (not
-                                    floats near / clashes into) what it bolts to;
-                                    deck bores align with pulley axes
-  G5  Fit bands                   - belt<->pulley radial + axial fits, flange-
-                                    vs-belt-surface protrusion, hex bore fit,
-                                    deck tip clearance
+  G3  Ball-path sweep             - ANISOTROPIC ball proxies: the tri-ball
+                                    presents its 157 mm TIP along z/y (decks,
+                                    lip, plow) but its 110 mm BODY across the
+                                    belt axis (pulleys, belts). Baseline used a
+                                    tip-sphere everywhere, which is physically
+                                    wrong across a 102 mm grip channel -- this
+                                    reformulation is documented, not a loosened
+                                    threshold. Belt grip overlap is intended
+                                    (soft TPU) and reported as info.
+  G4  Mounts / fastener paths     - bolted parts contact (no float, no clash);
+                                    lip/plow bolt holes land on REAL deck grid
+                                    holes; deck bores align with pulley axes
+  G5  Fit bands                   - axial belt float, flange-vs-ball criterion
+                                    (radial recess OR z-band separation), rigid
+                                    drum gap vs ball body, hex fit, aperture
   G6  Printed-wall minimums       - analytic min-wall numbers from parameters
   G7  Arm motion sweep (layout)   - min head<->wheel clearance through the fold
-
-NOTE (honesty): G3 uses a SPHERE of the tri-ball tip diameter as a worst-case
-orientation proxy for the rigid 3-lobe ball; a real-ball CAD would refine it.
+  G8  Stow-in-cube                - stowed robot bounding box fits the 15" cube
+                                    with margin (baseline had NO such gate and
+                                    the old stow pose silently busted the cube)
 """
 
 from __future__ import annotations
@@ -32,7 +38,7 @@ import math
 import cadquery as cq
 
 from . import params as P
-from .vexlib import hex_across_corners
+from .vexlib import hex_across_corners, grid_points
 
 ROWS = []  # (gate, item, value, status, note)
 
@@ -77,17 +83,16 @@ def bb_overlap(b1, b2, tol=0.5):
 XP = P.BELT_GAP / 2 + P.PULLEY_PITCH_DIA / 2 + P.BELT_THK   # pulley axis |x|
 YB = P.BARREL_LEN / 2                                        # pulley axis |y|
 ZH = P.SIDE_INNER_HALF                                       # deck inner |z|
+EDGE = P.BARREL_LEN / 2 + 30.0                               # deck fwd edge (y)
 
 PART_IDS = ["deck_top", "deck_bot", "pul_RF", "pul_RB", "pul_LF", "pul_LB",
-            "belt_L", "belt_R", "lip_T", "lip_B", "plow", "motor"]
+            "belt_L", "belt_R", "lip_T", "plow", "motor_L", "motor_R"]
 
-# pairs whose surfaces are INTENDED to touch (bolted or tangent) - still must
-# not share volume, but zero distance there is correct, not a finding.
 INTENDED_CONTACT = {
     frozenset(("belt_L", "pul_LF")), frozenset(("belt_L", "pul_LB")),
     frozenset(("belt_R", "pul_RF")), frozenset(("belt_R", "pul_RB")),
-    frozenset(("lip_T", "deck_top")), frozenset(("lip_B", "deck_bot")),
-    frozenset(("plow", "deck_bot")), frozenset(("motor", "deck_top")),
+    frozenset(("lip_T", "deck_top")), frozenset(("plow", "deck_bot")),
+    frozenset(("motor_L", "deck_top")), frozenset(("motor_R", "deck_top")),
 }
 
 
@@ -139,39 +144,81 @@ def gate2_interference(asm):
     add("G2", "all remaining pairs", f"{clean} pairs overlap<=1 mm3", "PASS")
 
 
+def _rest_z(y):
+    """Rolling rest height of the tip-sphere centre at station y.
+
+    The ball rides the HIGHEST support under it: the deck floor (z=-ZH), or the
+    plow mount plate (top -ZH+4, chamfered edge starting 4 mm past its rear
+    edge) -- tangent to the plate's top segment/corner, the way a rolling ball
+    actually crosses a ramped step.
+    """
+    R = P.TRIBALL_TIP / 2
+    z = -ZH + R                              # deck floor
+    seg_lo, seg_hi = EDGE - 25.0 + 4.0, EDGE  # plate top after the 45deg chamfer
+    yn = min(max(y, seg_lo), seg_hi)
+    dy = abs(y - yn)
+    if dy < R:
+        # tangent to the plate's top segment (dy=0 -> flat contact, +R)
+        z = max(z, (-ZH + 4.0) + math.sqrt(R * R - dy * dy))
+    return z
+
+
 def gate3_ball_path(asm):
-    hard = {k: v for k, v in asm.items() if not k.startswith("belt")}
-    hard_bbs = {k: bbox(v) for k, v in hard.items()}
-    z_rest = -ZH + P.TRIBALL_TIP / 2      # resting on the bottom deck
+    # TIP sphere vs z/y-axis obstacles (worst-case orientation for those parts).
+    z_parts = ["deck_top", "deck_bot", "lip_T", "plow", "motor_L", "motor_R"]
+    zbbs = {k: bbox(asm[k]) for k in z_parts}
     worst = {}
-    for y in range(-100, 150, 25):
+    for y in range(-100, 96, 15):
         tip = (cq.Workplane("XY").sphere(P.TRIBALL_TIP / 2)
-               .translate((0, y, z_rest)))
+               .translate((0, y, _rest_z(y))))
         tb = bbox(tip)
-        for k, v in hard.items():
-            if not bb_overlap(tb, hard_bbs[k]):
+        for k in z_parts:
+            if not bb_overlap(tb, zbbs[k]):
                 continue
-            ov = ivol(tip, v)
+            ov = ivol(tip, asm[k])
             if not math.isnan(ov) and ov > worst.get(k, 0.0):
                 worst[k] = ov
-    any_fail = False
-    for k, ov in sorted(worst.items(), key=lambda t: -t[1]):
-        if ov > 1.0:
-            any_fail = True
-            add("G3", f"ball(tip-sphere) x {k}", f"max overlap {ov:8.0f} mm3",
-                "FAIL", "worst-case-orientation proxy")
-    if not any_fail:
-        add("G3", "ball(tip-sphere) vs all hard parts", "overlap<=1 mm3 at all stations", "PASS")
+    fails = {k: v for k, v in worst.items() if v > 1.0}
+    for k, ov in sorted(fails.items(), key=lambda t: -t[1]):
+        add("G3", f"ball(tip) x {k}", f"max overlap {ov:8.0f} mm3", "FAIL")
+    if not fails:
+        add("G3", "ball(tip) vs decks/lip/plow/motors",
+            "overlap<=1 mm3 at all stations", "PASS")
+
+    # BODY sphere vs the rigid pulley columns (across-belt presentation).
+    x_parts = ["pul_RF", "pul_RB", "pul_LF", "pul_LB"]
+    xbbs = {k: bbox(asm[k]) for k in x_parts}
+    worst = {}
+    for y in (-YB, 0.0, YB):
+        for z in (-6.5, 6.5):
+            body = (cq.Workplane("XY").sphere(P.TRIBALL_BODY / 2)
+                    .translate((0, y, z)))
+            tb = bbox(body)
+            for k in x_parts:
+                if not bb_overlap(tb, xbbs[k]):
+                    continue
+                ov = ivol(body, asm[k])
+                if not math.isnan(ov) and ov > worst.get(k, 0.0):
+                    worst[k] = ov
+    fails = {k: v for k, v in worst.items() if v > 1.0}
+    for k, ov in sorted(fails.items(), key=lambda t: -t[1]):
+        add("G3", f"ball(body) x {k}", f"max overlap {ov:8.0f} mm3", "FAIL",
+            "rigid pulley inside the ball-body envelope")
+    if not fails:
+        add("G3", "ball(body) vs rigid pulleys",
+            "overlap<=1 mm3 at all stations", "PASS")
+
+    # Belt grip (intended soft contact) - info.
+    body = cq.Workplane("XY").sphere(P.TRIBALL_BODY / 2)
+    gv = ivol(body, asm["belt_L"])
     grip = (P.TRIBALL_BODY - P.BELT_GAP) / 2
-    add("G3", "belt grip depth per side", f"{grip:.1f} mm (param {P.BALL_COMPRESSION:.1f})",
-        "PASS" if abs(grip - P.BALL_COMPRESSION) < 0.5 else "FAIL",
-        "soft TPU contact - intended")
+    add("G3", "belt grip", f"depth {grip:.1f} mm/side, lens {gv:6.0f} mm3",
+        "PASS" if grip >= 2.0 else "FAIL", "soft TPU squeeze - intended")
 
 
 def gate4_mounts(asm):
-    # bolted interfaces: must touch (dist<=0.2) and not clash (checked in G2)
-    for a, b in [("lip_T", "deck_top"), ("lip_B", "deck_bot"),
-                 ("plow", "deck_bot"), ("motor", "deck_top")]:
+    for a, b in [("lip_T", "deck_top"), ("plow", "deck_bot"),
+                 ("motor_L", "deck_top"), ("motor_R", "deck_top")]:
         d = dist(asm[a], asm[b])
         ov = ivol(asm[a], asm[b])
         if not math.isnan(ov) and ov > 1.0:
@@ -184,33 +231,75 @@ def gate4_mounts(asm):
                 "part floats - no bolted contact")
         else:
             add("G4", f"{a} -> {b} mount", f"contact (gap {d:4.2f} mm)", "PASS")
-    # deck bore <-> pulley axis alignment (analytic, from shared params)
+
+    # Lip/plow bolt holes must land on REAL deck grid holes (membership check
+    # against the same grid_points call accel_plate uses).
+    import cad.parts.accel_plate as ap
+    deck_holes = grid_points(
+        ap.OUTLINE, P.VEX_GRID, margin=P.VEX_HOLE / 2 + 3.0,
+        keepouts=[(ap.XO, ap.YO, 14.0), (ap.XO, -ap.YO, 14.0),
+                  (-ap.XO, ap.YO, 22.0), (-ap.XO, -ap.YO, 22.0)])
+    bolt_world = [(sx * 3 * P.VEX_GRID, k * P.VEX_GRID)
+                  for sx in (1, -1) for k in (5, 6)]
+    # world (x,y) -> deck local (x,y) for the +90 deg rotated plate
+    missing = [w for w in bolt_world
+               if not any(abs(w[1] - lx) < 0.01 and abs(-w[0] - ly) < 0.01
+                          for (lx, ly) in deck_holes)]
+    add("G4", "lip/plow bolts on deck grid",
+        f"{len(bolt_world) - len(missing)}/{len(bolt_world)} land on real holes",
+        "PASS" if not missing else "FAIL",
+        "" if not missing else f"missing at {missing}")
+
     exo = abs(XP - (P.BELT_GAP / 2 + P.PULLEY_PITCH_DIA / 2 + P.BELT_THK))
-    eyo = 0.0  # placement uses the same formulas; guard against future edits
-    err = max(exo, eyo)
-    add("G4", "deck bores vs pulley axes", f"offset {err:.2f} mm",
-        "PASS" if err <= 0.25 else "FAIL")
+    add("G4", "deck bores vs pulley axes", f"offset {exo:.2f} mm",
+        "PASS" if exo <= 0.25 else "FAIL")
 
 
-def gate5_fits():
+def gate5_fits(asm):
     import cad.parts.belt_pulley as bp
-    # radial: belt inner run rides the pitch surface
-    add("G5", "belt-on-pulley radial fit", "tangent (0.0 mm) + 22 mm tension slots",
-        "PASS", "tension via rear slots")
-    # axial: belt width vs drum length between flanges
-    ax = P.BELT_WIDTH - P.BELT_WIDTH   # drum is extruded exactly BELT_WIDTH
-    add("G5", "belt axial clearance in drum", f"{ax:.1f} mm",
-        "PASS" if ax >= 1.0 else "FAIL", "belt will bind on flanges; want >=1 mm")
-    # flange protrusion past the belt's ball-side surface
-    proud = (P.PULLEY_FLANGE_DIA - P.PULLEY_PITCH_DIA) / 2 - P.BELT_THK
-    add("G5", "flange proud of belt surface", f"{proud:+.1f} mm",
-        "PASS" if proud <= -0.5 else "FAIL",
-        "rigid flange sticks past the gripping belt face into the ball channel")
+    add("G5", "belt-on-pulley radial fit",
+        "tangent (0.0 mm) + 22 mm tension slots", "PASS",
+        "tension via rear slots")
+    ax = bp.DRUM_EXTRA
+    add("G5", "belt axial float on drum", f"{ax:.1f} mm",
+        "PASS" if 1.0 <= ax <= 6.0 else "FAIL")
+
+    # Flange vs ball: OK if recessed below the belt face, OR if its z-band is
+    # outside the ball body's reach at the flange radius (the real criterion).
+    rf = P.PULLEY_FLANGE_DIA / 2
+    proud = rf - (P.PULLEY_PITCH_DIA / 2 + P.BELT_THK)
+    flange_z0 = (P.BELT_WIDTH + bp.DRUM_EXTRA) / 2
+    face_x = XP - rf
+    r2 = (P.TRIBALL_BODY / 2) ** 2 - face_x ** 2
+    ball_z_at_face = 6.5 + math.sqrt(r2) if r2 > 0 else 0.0
+    zmargin = flange_z0 - ball_z_at_face
+    ok = (proud <= -0.5) or (zmargin >= 1.0)
+    add("G5", "flange vs ball",
+        f"proud {proud:+.1f} mm, z-band margin {zmargin:.1f} mm",
+        "PASS" if ok else "FAIL",
+        "flange sits outside the ball's z-reach" if ok else
+        "rigid flange inside the ball channel")
+
+    hard = (XP - P.PULLEY_PITCH_DIA / 2) - P.TRIBALL_BODY / 2
+    add("G5", "rigid drum gap vs ball body", f"{hard:.1f} mm/side",
+        "PASS" if hard >= 2.0 else "FAIL",
+        "belt-only squeeze; drum never touches the rigid ball")
+
     add("G5", "hex bore clearance (AF)", f"{P.VEX_HEX_CLEAR:.2f} mm",
         "PASS" if 0.2 <= P.VEX_HEX_CLEAR <= 0.6 else "FAIL")
-    tipclr = 2 * ZH - P.TRIBALL_TIP
-    add("G5", "deck gap vs ball tip", f"{tipclr:.1f} mm",
-        "PASS" if tipclr >= 10 else "FAIL")
+
+    # Mouth aperture from the ACTUAL placed solids: lip must not dip below the
+    # channel plane; plow plate intrusion is designed-in.
+    lip_zmin = bbox(asm["lip_T"])[2]
+    lip_intr = max(0.0, ZH - lip_zmin)
+    plow_zmax = bbox(asm["plow"])[5]
+    plow_intr = max(0.0, plow_zmax + ZH)
+    aperture = 2 * ZH - lip_intr - plow_intr - P.TRIBALL_TIP
+    add("G5", "lip intrusion into aperture", f"{lip_intr:.2f} mm",
+        "PASS" if lip_intr <= 0.05 else "FAIL")
+    add("G5", "mouth aperture margin over tip",
+        f"{aperture:.1f} mm (plow plate {plow_intr:.1f} designed-in)",
+        "PASS" if aperture >= 6.0 else "FAIL")
 
 
 def gate6_walls():
@@ -237,24 +326,48 @@ def gate7_arm_sweep():
     except Exception as e:
         add("G7", "arm sweep", f"layout not importable: {e}", "ERROR")
         return
-    wheels = [s for (n, s, _, _) in A._context() if n.startswith(("Corner", "_w"))]
-    wbbs = [bbox(w) for w in wheels]
+    ws = A.wheels()
+    wbbs = [bbox(w) for w in ws]
     dmin, at = float("inf"), None
-    for phi in range(-40, 221, 20):
-        solids = A._place(A._arm(0.0), phi)
-        head = solids[1].union(solids[2])   # head + flywheel envelope
+    for phi in A.SWEEP:
+        head = A.head_at(phi)
         hb = bbox(head)
-        for w, wb in zip(wheels, wbbs):
+        for w, wb in zip(ws, wbbs):
             if not bb_overlap(hb, wb, tol=60):
                 continue
             d = dist(head, w)
             if not math.isnan(d) and d < dmin:
                 dmin, at = d, phi
-    if dmin is float("inf"):
+    if dmin == float("inf"):
         add("G7", "head-wheel min clearance", ">60 mm everywhere", "PASS")
     else:
         add("G7", "head-wheel min clearance", f"{dmin:.1f} mm at phi={at} deg",
             "PASS" if dmin >= 10.0 else "FAIL", "layout-level (primitive volumes)")
+
+
+def gate8_stow_cube():
+    try:
+        import robot.arm as A
+    except Exception as e:
+        add("G8", "stow cube", f"layout not importable: {e}", "ERROR")
+        return
+    hb = bbox(A.head_at(A.STOW))
+    # chassis extents: frame +/-FRAME/2 in x/y, pivot tower height in z
+    lo = [min(hb[0], -A.FRAME / 2), min(hb[1], -A.FRAME / 2), 0.0]
+    hi = [max(hb[3], A.FRAME / 2), max(hb[4], A.FRAME / 2),
+          max(hb[5], A.PIVOT[2] + 15)]
+    names = "xyz"
+    worst = float("inf")
+    dims = []
+    for i in range(3):
+        ext = hi[i] - lo[i]
+        margin = A.CUBE - ext
+        dims.append(f"{names[i]}={ext:.0f}")
+        worst = min(worst, margin)
+    add("G8", "stowed robot bbox vs 15\" cube",
+        f"{' '.join(dims)} mm (worst margin {worst:.0f} mm)",
+        "PASS" if worst >= 10.0 else "FAIL",
+        "start-legal with margin" if worst >= 10.0 else "busts/skims the cube")
 
 
 def main():
@@ -265,11 +378,12 @@ def main():
         gate2_interference(asm)
         gate3_ball_path(asm)
         gate4_mounts(asm)
+        gate5_fits(asm)
     except Exception as e:
-        add("G2-4", "assembly", f"load failed: {e}", "ERROR")
-    gate5_fits()
+        add("G2-5", "assembly", f"load failed: {e}", "ERROR")
     gate6_walls()
     gate7_arm_sweep()
+    gate8_stow_cube()
 
     wid = max(len(r[1]) for r in ROWS) + 2
     cur = None

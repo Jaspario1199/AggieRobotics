@@ -731,7 +731,62 @@ add tracking wheels; assign hang to the 24″ partner). **The one fork that need
 how to launch** — see the recommendation in the reply. Once that's set, the fold geometry +
 numbers get redone into an airtight v1.0, *then* CAD.
 
+## 16. Gate-driven refinement (v1.1) — verify, don't assert
+
+The CAD was put under 8 automated verification gates (`cad/gates.py`: pairwise
+interference, anisotropic ball-path sweep, mount/fastener contact + real
+grid-hole membership, fit bands, printed-wall minimums, arm motion sweep,
+stow-in-cube). **Baseline: 15 pass / 24 FAIL. Final: 29 pass / 0 FAIL** —
+regression-run after every change (`docs/gates_baseline.txt` → `docs/gates_after.txt`).
+
+**Geometry fixed (all verified by re-run, numbers in the logs):**
+- **Throat lip rebuilt** — the old part had full-ring slivers from undersized cut
+  boxes and side-plate-era flanges burying 518 mm³ into the decks and clipping
+  pulleys/belts. Now: grid-bolted top plate + edge wall + flare with **0.00 mm
+  aperture intrusion**; all clashes → 0.
+- **Bottom lip DELETED, plow re-designed as the bottom ramp** — mount plate on
+  the bottom deck's inner face (45° chamfered edge: ball rolls a ramp, not a
+  4 mm step), raked blade to the floor. One part = bottom guide + push blade.
+- **Rigid-ball squeeze corrected** — `BALL_COMPRESSION 6→4`, `BELT_THK 4→6`
+  (constraint: compression ≤ belt−1). Rigid drum now clears the ball body by
+  **2.0 mm/side** (was −2: metal-on-ball interference).
+- **Pulley** — drum +5 mm (belt axial float 5.0 mm, was 0 = binding), flanges
+  moved **outboard of the ball's z-reach** (38 mm margin), lightening windows
+  re-sized (window-to-bore wall 1.97→2.52 mm).
+- **Motor plates** — seated on the deck (was floating 10 mm), and the second
+  plate added; lip/plow bolt holes verified to land on **real** deck grid holes.
+
+**Layout corrected (robot/arm.py is now the single kinematic source):**
+- The head (~227 mm wide) is WIDER than the wheel gap (~196 mm) → it can never
+  pass between wheels; every swing must clear them vertically. Pivot moved to
+  (y=155, z=221), carriage at the head's rear face.
+- **Slide REMOVED** (decision, rationale recorded): a straight arm from a high
+  pivot provably cannot reach the REAR floor over the rear wheels (head bottom
+  ≥ 92 mm at y=−136 forces pitch ≥ −0.7°, i.e. horizontal). Rear floor intake =
+  **yaw the holonomic base 180°** (~0.3 s); the stow pose still works the rear
+  directly (mouth rearward at ~200 mm: launch / hold / feed). Frees a pneumatic
+  circuit, stiffens the arm (red-team C-M4), and front floor intake is reached
+  by the pivot alone (mouth at 80 mm = ball centre height at φ=−25°).
+- Gates: head-wheel clearance 0.0 → **13.3 mm**; stow-in-cube (NEW gate G8 — the
+  old stow pose silently poked the flywheel out of the cube): worst margin **21 mm**.
+
+**Carve-outs / still-open (documented, not hidden):**
+1. Bench items unchanged (§15.9): tip-orientation capture at the throat, and
+   launch scatter — cannot be closed on paper.
+2. TPU belt loop seam durability at speed — bench test.
+3. Lip flare overhang needs supports or a split print.
+4. G7 (13.3 mm) and G8 (21 mm) margins are adequate but not generous — re-verify
+   when real arm-link/carriage CAD replaces the layout primitives.
+5. Front-deploy tipping ≈1.5–2× static margin by estimate — verify with CAD
+   masses; keep battery/reservoir low and rear.
+6. `HEAD_ALONG = 333 mm` includes a ±20 mm flywheel-protrusion estimate — pin it
+   down when the launcher hood CAD is integrated into the head assembly.
+
 ## 12. Change log
+- **v1.1** — gate-driven refinement (§16): 8 automated gates, baseline 15/24-fail
+  → final 29/0. Lip rebuilt, plow=ramp (bottom lip deleted), rigid-ball squeeze
+  corrected, pulley/flange/motor-plate fixes, pivot re-solved, slide removed
+  (rear-floor proof), stow-in-cube now gated.
 
 ## 12. Change log
 - **v1.0** — §15 resolves the post-critique design. Launch → dedicated **flywheel** fed

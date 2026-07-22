@@ -32,10 +32,10 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 | Item | Qty | Purpose | Source |
 |------|----:|---------|--------|
 | `belt_pulley` (metal-hub or heat-set) | 4 | belts ride on these | **printed** + VEX hub |
-| `drive_belt` (**TPU**) | 2 | grip the ~4.3" ball body | **printed (TPU)** |
+| `drive_belt` (**TPU**, 6 mm) | 2 | grip the ~4.3" ball body (squeeze lives in the belt) | **printed (TPU)** |
 | `accel_plate` deck (PETG) | 2 | pulley mounts / ball channel | **printed** |
-| `throat_lip` (PETG) | 2 | flared mouth, swallows the 6.18" tip | **printed** |
-| `front_plow` (PETG) | 1 | push mode + cross-brace | **printed** |
+| `throat_lip` (PETG) | 1 | flared TOP mouth guide, bolts to the deck grid | **printed** |
+| `front_plow` (PETG) | 1 | bottom ramp + push blade + bottom mouth guide | **printed** |
 | **Metal spine** (C-channel/plate) | 1 | primary load path behind the printed shells | VEX |
 | V5 Smart Motor | 1 | belt intake (L/R cross-linked) | VEX |
 | ½" hex shaft + bearings + collars | 4 sets | pulley shafts | VEX |
@@ -45,8 +45,6 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 |------|----:|---------|--------|
 | Pivot shaft (½" HS or ¾") + bearing blocks | 1 set | shoulder pivot (dual-shear) | VEX |
 | V5 Smart Motor + gearbox (~7:1, **100 RPM cart.**) | 1 | fold actuation, holds ~5.6 N·m | VEX |
-| Linear slide + carriage | 1 | telescoping reach (COTS slide is legal — "fastener") | VEX / COTS |
-| Pneumatic cylinder (slide) | 1 | extend/retract | VEX pneumatics |
 | Over-center latch (passive) | 1 | holds folded pose powered-off (inspection) | printed/VEX |
 | Deployed hard-stop | 1 | fixes launch angle, off motor hold | printed/VEX |
 
@@ -80,7 +78,8 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 
 ### Motor tally (7)
 4 drive · 1 belt intake · 1 flywheel · 1 arm pivot  → **7** (1 spare port reserved
-for a 2nd flywheel or an endgame hook). Slide + latch are **pneumatic**.
+for a 2nd flywheel or an endgame hook). The fold latch is **pneumatic**; the
+telescoping slide was REMOVED in the gate-driven refinement (see DESIGN.md §16).
 
 ### Team note
 This is the **15" scorer**; the team's **24" robot handles elevation** (endgame
