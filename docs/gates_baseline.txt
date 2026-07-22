@@ -1,0 +1,51 @@
+Running gates (booleans on real B-rep - takes a minute)...
+
+--- G1 ----------------------------------------------------------
+[  ok ] belt_pulley                     solids=1 valid=True
+[  ok ] drive_belt                      solids=1 valid=True
+[  ok ] accel_plate                     solids=1 valid=True
+[  ok ] throat_lip                      solids=1 valid=True
+[  ok ] front_plow                      solids=1 valid=True
+[  ok ] motor_plate                     solids=1 valid=True
+--- G2 ----------------------------------------------------------
+[ FAIL] deck_top x lip_T                overlap      518 mm3   <- intended-contact pair (must touch, not overlap)
+[ FAIL] deck_bot x lip_B                overlap      518 mm3   <- intended-contact pair (must touch, not overlap)
+[ FAIL] pul_RF x lip_T                  overlap      139 mm3
+[ FAIL] pul_RF x lip_B                  overlap      139 mm3
+[ FAIL] pul_LF x lip_T                  overlap      117 mm3
+[ FAIL] pul_LF x lip_B                  overlap      117 mm3
+[ FAIL] belt_L x lip_T                  overlap       26 mm3
+[ FAIL] belt_L x lip_B                  overlap       26 mm3
+[ FAIL] belt_R x lip_T                  overlap       26 mm3
+[ FAIL] belt_R x lip_B                  overlap       26 mm3
+[ FAIL] lip_B x plow                    overlap     6464 mm3
+[  ok ] all remaining pairs             55 pairs overlap<=1 mm3
+--- G3 ----------------------------------------------------------
+[ FAIL] ball(tip-sphere) x pul_LB       max overlap    40862 mm3   <- worst-case-orientation proxy
+[ FAIL] ball(tip-sphere) x pul_LF       max overlap    40837 mm3   <- worst-case-orientation proxy
+[ FAIL] ball(tip-sphere) x pul_RB       max overlap    38592 mm3   <- worst-case-orientation proxy
+[ FAIL] ball(tip-sphere) x pul_RF       max overlap    38531 mm3   <- worst-case-orientation proxy
+[ FAIL] ball(tip-sphere) x plow         max overlap     7403 mm3   <- worst-case-orientation proxy
+[  ok ] belt grip depth per side        6.0 mm (param 6.0)   <- soft TPU contact - intended
+--- G4 ----------------------------------------------------------
+[ FAIL] lip_T -> deck_top mount         CLASH    518 mm3   <- parts overlap instead of mating
+[ FAIL] lip_B -> deck_bot mount         CLASH    518 mm3   <- parts overlap instead of mating
+[ FAIL] plow -> deck_bot mount          gap   2.0 mm   <- part floats - no bolted contact
+[ FAIL] motor -> deck_top mount         gap  10.0 mm   <- part floats - no bolted contact
+[  ok ] deck bores vs pulley axes       offset 0.00 mm
+--- G5 ----------------------------------------------------------
+[  ok ] belt-on-pulley radial fit       tangent (0.0 mm) + 22 mm tension slots   <- tension via rear slots
+[ FAIL] belt axial clearance in drum    0.0 mm   <- belt will bind on flanges; want >=1 mm
+[ FAIL] flange proud of belt surface    +1.0 mm   <- rigid flange sticks past the gripping belt face into the ball channel
+[  ok ] hex bore clearance (AF)         0.35 mm
+[  ok ] deck gap vs ball tip            13.0 mm
+--- G6 ----------------------------------------------------------
+[ FAIL] pulley: window-to-bore wall     1.97 mm   <- printed PETG, torque path
+[  ok ] pulley: window-to-drum wall     2.00 mm
+[  ok ] belt: web under tread groove    2.90 mm   <- TPU loop integrity
+[  ok ] decks: web between grid holes   7.80 mm
+--- G7 ----------------------------------------------------------
+[ FAIL] head-wheel min clearance        0.0 mm at phi=-40 deg   <- layout-level (primitive volumes)
+
+==================================================================
+SCORECARD: 15 pass / 24 FAIL / 0 error
