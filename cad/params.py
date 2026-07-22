@@ -42,19 +42,23 @@ VEX_SHAFT_CLEAR = 16.0    # mm, round hole for a hex shaft to pass / a bearing t
 GEAR_CD = 3 * VEX_GRID    # mm, motor<->pulley gear centre distance (VEX-legal, 1.5")
 
 # --- Tri-ball game element (VEX Over Under) --------------------------------
-TRIBALL_DIA = 178.0       # mm, nominal tri-ball capture diameter (~7 in)
+# CORRECTED to the real element (was a 178 mm sphere placeholder): the tri-ball is
+# a rigid, hollow, 3-lobed shell ~6.18" tip-to-tip with a ~4.3" body. The belts
+# grip the BODY; the throat/decks must clear the TIP. See docs/DESIGN.md §13/§15.
+TRIBALL_TIP = 157.0       # mm, tip-to-tip (6.18") -> sets throat + deck clearance
+TRIBALL_BODY = 110.0      # mm, body across (~4.3") -> sets the belt grip
+TRIBALL_DIA = TRIBALL_TIP  # back-compat alias (renderers use TRIBALL_DIA/2)
 
-# --- Belt accelerator geometry ---------------------------------------------
+# --- Belt INTAKE head geometry (robot role: intake / hold / push; launch = flywheel)
 PLATE_THK = 6.0           # mm, deck (side-plate) thickness
-BALL_COMPRESSION = 10.0   # mm, how far each belt squeezes into the ball (grip)
-BELT_GAP = TRIBALL_DIA - 2 * BALL_COMPRESSION   # mm, inner-run separation (158)
-BELT_WIDTH = 150.0        # mm, belt width -- the ball-contact band (along the shaft)
-BELT_THK = 4.0            # mm, belt thickness incl. tread
-BARREL_LEN = 150.0        # mm, pulley centre-to-centre along the barrel (accel dist)
-PULLEY_PITCH_DIA = 50.0   # mm, traction diameter the belt rides on
-PULLEY_FLANGE_DIA = 60.0  # mm, belt-retaining flange OD
+BALL_COMPRESSION = 6.0    # mm, TPU belt deform onto the RIGID body (belt yields, not ball)
+BELT_GAP = TRIBALL_BODY - 2 * BALL_COMPRESSION  # mm, inner-run separation (~98)
+BELT_WIDTH = 120.0        # mm, belt width >= body so it grips the whole 110 mm band
+BELT_THK = 4.0            # mm, TPU belt thickness incl. tread
+BARREL_LEN = 110.0        # mm, pulley centre-to-centre (compact intake engagement)
+PULLEY_PITCH_DIA = 45.0   # mm, traction diameter the belt rides on
+PULLEY_FLANGE_DIA = 55.0  # mm, belt-retaining flange OD
 PULLEY_SPOKES = 5         # lightening windows in the pulley
-# The decks must be wider apart than the ball so it can't pop out top/bottom
-# while the side belts grip it -> gap > TRIBALL_DIA.
-SIDE_INNER_HALF = 95.0    # mm, half the deck-to-deck gap (also the deck spacing)
+# Decks sit wider than the TIP so the 3-lobe ball can't pop out as it tumbles in.
+SIDE_INNER_HALF = 85.0    # mm, half the deck-to-deck gap (2*85 = 170 > 157 tip)
 PLOW_DEG = 20.0           # deg, front plow-blade rake (down-and-forward)
