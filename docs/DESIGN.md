@@ -783,6 +783,11 @@ regression-run after every change (`docs/gates_baseline.txt` → `docs/gates_aft
    down when the launcher hood CAD is integrated into the head assembly.
 
 ## 12. Change log
+- **v1.2** — real arm-link CAD: `arm_hub` ×2 (hex-keyed web + boss, bolts to both
+  decks) and `pivot_block` ×2 (chassis-side bearings), new gate **G9** (6 checks).
+  G9 caught a phantom half-pitch bolt column → deck widened so the REAL 114.3 mm
+  grid column exists; motor plates slimmed to ±20; pivot z 221→223 for sweep
+  clearance. Full suite **41 pass / 0 FAIL** (was 39/2 mid-loop).
 - **v1.1** — gate-driven refinement (§16): 8 automated gates, baseline 15/24-fail
   → final 29/0. Lip rebuilt, plow=ramp (bottom lip deleted), rigid-ball squeeze
   corrected, pulley/flange/motor-plate fixes, pivot re-solved, slide removed

@@ -10,7 +10,10 @@ grid points and you can re-pick the bore pair to change ratio.
 
 Lower bore = clearance for the motor's output pilot; snap a bearing flat over the
 upper bore for the pulley shaft. Rounded corners, print FLAT, no supports. Mounts
-outboard of a side plate. PLA/PETG.
+on the deck top over a rear pulley shaft. PLA/PETG.
+
+Width is +/-20 (was +/-38): the arm-hub tabs bolt to the deck just outboard of
+this plate, so it must stay inboard of the tab column (gate G9 checks the gap).
 """
 
 from __future__ import annotations
@@ -21,8 +24,10 @@ from ..params import VEX_GRID, VEX_HOLE, VEX_SHAFT_CLEAR, GEAR_CD, PLATE_THK
 from ..vexlib import grid_points
 
 MOTOR_PILOT = 26.0     # mm, clearance for the V5 output boss (open up for a gearbox)
+HALF_W = 20.0          # plate half-width (keeps clear of the arm-hub tabs)
 
-OUTLINE = [(-38, -40), (38, -40), (38, GEAR_CD + 40), (-38, GEAR_CD + 40)]
+OUTLINE = [(-HALF_W, -40), (HALF_W, -40),
+           (HALF_W, GEAR_CD + 40), (-HALF_W, GEAR_CD + 40)]
 MOTOR_BORE = (0.0, 0.0)
 PULLEY_BORE = (0.0, GEAR_CD)
 

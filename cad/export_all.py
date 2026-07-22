@@ -25,6 +25,8 @@ PARTS = [
     "throat_lip",
     "front_plow",
     "motor_plate",
+    "arm_hub",
+    "pivot_block",
 ]
 
 
@@ -107,6 +109,12 @@ def _place_accelerator():
     named.append(("_motor_R",
                   motor.translate((+XP, -YB - P.GEAR_CD, ZH + P.PLATE_THK)),
                   "#586170"))
+
+    # Arm hubs (modelled in assembly coords; left = mirror). They rotate with
+    # the head -- the pivot axis they key to is (y=PIV_Y, z=0).
+    hub = importlib.import_module("cad.parts.arm_hub").make()
+    named.append(("Arm hub (x2)", hub, "#9a6bbf"))
+    named.append(("_hub_L", hub.mirror("YZ"), "#9a6bbf"))
 
     ball = ((0.0, -8.0, -ZH + P.TRIBALL_DIA / 2.0), P.TRIBALL_DIA / 2.0)
     return named, ball

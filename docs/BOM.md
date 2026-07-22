@@ -43,7 +43,9 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 ## S4 — Fold arm  (purchased: VEX + pneumatics; custom: brackets)
 | Item | Qty | Purpose | Source |
 |------|----:|---------|--------|
-| Pivot shaft (½" HS or ¾") + bearing blocks | 1 set | shoulder pivot (dual-shear) | VEX |
+| ½" high-strength hex pivot shaft | 1 | shoulder axis (hubs keyed to it) | VEX |
+| `arm_hub` (PETG, print 2nd MIRRORED) | 2 | keys the head to the pivot shaft; bolts to both decks on the grid | **printed** |
+| `pivot_block` (PETG) | 2 | chassis-side bearing blocks on the towers (dual shear, VEX bearing flats) | **printed** |
 | V5 Smart Motor + gearbox (~7:1, **100 RPM cart.**) | 1 | fold actuation, holds ~5.6 N·m | VEX |
 | Over-center latch (passive) | 1 | holds folded pose powered-off (inspection) | printed/VEX |
 | Deployed hard-stop | 1 | fixes launch angle, off motor hold | printed/VEX |

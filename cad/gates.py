@@ -86,13 +86,16 @@ ZH = P.SIDE_INNER_HALF                                       # deck inner |z|
 EDGE = P.BARREL_LEN / 2 + 30.0                               # deck fwd edge (y)
 
 PART_IDS = ["deck_top", "deck_bot", "pul_RF", "pul_RB", "pul_LF", "pul_LB",
-            "belt_L", "belt_R", "lip_T", "plow", "motor_L", "motor_R"]
+            "belt_L", "belt_R", "lip_T", "plow", "motor_L", "motor_R",
+            "hub_R", "hub_L"]
 
 INTENDED_CONTACT = {
     frozenset(("belt_L", "pul_LF")), frozenset(("belt_L", "pul_LB")),
     frozenset(("belt_R", "pul_RF")), frozenset(("belt_R", "pul_RB")),
     frozenset(("lip_T", "deck_top")), frozenset(("plow", "deck_bot")),
     frozenset(("motor_L", "deck_top")), frozenset(("motor_R", "deck_top")),
+    frozenset(("hub_R", "deck_top")), frozenset(("hub_R", "deck_bot")),
+    frozenset(("hub_L", "deck_top")), frozenset(("hub_L", "deck_bot")),
 }
 
 
@@ -107,7 +110,7 @@ def load_assembly():
 def gate1_parts():
     import importlib
     for name in ["belt_pulley", "drive_belt", "accel_plate", "throat_lip",
-                 "front_plow", "motor_plate"]:
+                 "front_plow", "motor_plate", "arm_hub", "pivot_block"]:
         try:
             mod = importlib.import_module(f"cad.parts.{name}")
             w = mod.make()
@@ -218,7 +221,9 @@ def gate3_ball_path(asm):
 
 def gate4_mounts(asm):
     for a, b in [("lip_T", "deck_top"), ("plow", "deck_bot"),
-                 ("motor_L", "deck_top"), ("motor_R", "deck_top")]:
+                 ("motor_L", "deck_top"), ("motor_R", "deck_top"),
+                 ("hub_R", "deck_top"), ("hub_R", "deck_bot"),
+                 ("hub_L", "deck_top"), ("hub_L", "deck_bot")]:
         d = dist(asm[a], asm[b])
         ov = ivol(asm[a], asm[b])
         if not math.isnan(ov) and ov > 1.0:
@@ -370,6 +375,59 @@ def gate8_stow_cube():
         "start-legal with margin" if worst >= 10.0 else "busts/skims the cube")
 
 
+def gate9_arm_link(asm):
+    """Real arm-link integration: hubs + pivot blocks."""
+    import cad.parts.arm_hub as ah
+    import cad.parts.pivot_block as pb
+    import cad.parts.motor_plate as mp
+    import cad.parts.accel_plate as ap
+
+    # a) hub tab bolts land on REAL deck grid holes.
+    deck_holes = grid_points(
+        ap.OUTLINE, P.VEX_GRID, margin=P.VEX_HOLE / 2 + 3.0,
+        keepouts=[(ap.XO, ap.YO, 14.0), (ap.XO, -ap.YO, 14.0),
+                  (-ap.XO, ap.YO, 22.0), (-ap.XO, -ap.YO, 22.0)])
+    bolt_world = [(sx * ah.BOLT_COL, r) for sx in (1, -1) for r in ah.BOLT_ROWS]
+    missing = [w for w in bolt_world
+               if not any(abs(w[1] - lx) < 0.01 and abs(-w[0] - ly) < 0.01
+                          for (lx, ly) in deck_holes)]
+    add("G9", "hub bolts on deck grid",
+        f"{len(bolt_world) - len(missing)}/{len(bolt_world)} land on real holes",
+        "PASS" if not missing else "FAIL",
+        "" if not missing else f"missing at {missing}")
+
+    # b) web clears the deck edge.
+    gap_web = ah.X0 - ah.DECK_HALF_W
+    add("G9", "hub web vs deck edge", f"gap {gap_web:.1f} mm",
+        "PASS" if gap_web >= 0.5 else "FAIL")
+
+    # c) tabs clear the motor plate.
+    plate_out = XP + mp.HALF_W
+    gap_tab = ah.TAB_X0 - plate_out
+    add("G9", "hub tab vs motor plate", f"gap {gap_tab:.1f} mm",
+        "PASS" if gap_tab >= 0.5 else "FAIL")
+
+    # d) chassis-side pivot block stays outboard of the swinging boss.
+    boss_out = ah.X0 + ah.BOSS_LEN
+    try:
+        import robot.arm as A
+        blk_in = A.BLOCK_X0
+        gap_blk = blk_in - boss_out
+        add("G9", "pivot block vs hub boss", f"gap {gap_blk:.1f} mm",
+            "PASS" if gap_blk >= 1.0 else "FAIL")
+        # e) tower + block arithmetic puts the bore ON the pivot axis.
+        bore_z = A.TOWER_TOP + pb.BORE_H
+        err = abs(bore_z - A.PIVOT[2])
+        add("G9", "block bore on pivot axis", f"offset {err:.2f} mm",
+            "PASS" if err <= 0.25 else "FAIL")
+    except Exception as e:
+        add("G9", "robot-side placement", f"not importable: {e}", "ERROR")
+
+    # f) hub bore is the keyed hex fit.
+    add("G9", "hub hex bore fit (AF)", f"{P.VEX_HEX_CLEAR:.2f} mm",
+        "PASS" if 0.2 <= P.VEX_HEX_CLEAR <= 0.6 else "FAIL")
+
+
 def main():
     print("Running gates (booleans on real B-rep - takes a minute)...\n")
     gate1_parts()
@@ -379,8 +437,9 @@ def main():
         gate3_ball_path(asm)
         gate4_mounts(asm)
         gate5_fits(asm)
+        gate9_arm_link(asm)
     except Exception as e:
-        add("G2-5", "assembly", f"load failed: {e}", "ERROR")
+        add("G2-5,9", "assembly", f"load failed: {e}", "ERROR")
     gate6_walls()
     gate7_arm_sweep()
     gate8_stow_cube()

@@ -46,17 +46,24 @@ CORNER = FRAME / 2 - 44          # wheel centres at (+/-136, +/-136)
 DECK_Z = 25.0
 
 # --- head envelope (from the cad/ assembly, gates-verified) ----------------
-HEAD_W = 227.0                   # across belts (deck width 2 x 113.5)
-HEAD_ALONG = 333.0               # rear face -> flare tip + flywheel allowance
-HEAD_N_LO, HEAD_N_HI = -93.0, 128.0   # normal extents about the channel plane
+# Width now includes the ARM HUB bosses (cad/parts/arm_hub.py: boss outer face
+# at x = 128.5 per side); BACK is the boss radius behind the pivot plane.
+HEAD_W = 272.0                   # across belts incl. hub bosses (2 x 136)
+HEAD_ALONG = 333.0               # pivot plane -> flare tip + flywheel allowance
+HEAD_BACK = 16.0                 # hub boss radius behind the pivot plane
+HEAD_N_LO, HEAD_N_HI = -97.0, 128.0   # normal extents (hub webs to -97)
 HEAD_N = HEAD_N_HI - HEAD_N_LO
 HEAD_N_CTR = (HEAD_N_HI + HEAD_N_LO) / 2
 
 # --- arm ------------------------------------------------------------------
-PIVOT = (0.0, 155.0, 221.0)      # shoulder axis (along X)
+PIVOT = (0.0, 155.0, 223.0)      # shoulder axis (along X); z raised for G7
 STOW = 180.0                     # start pose (in-cube), mouth rearward
 FRONT = -25.0                    # floor-intake / forward-launch pose
 SWEEP = list(range(int(FRONT), int(STOW) + 1, 15)) + [STOW]
+
+# chassis-side pivot bearing blocks (cad/parts/pivot_block.py)
+BLOCK_X0 = 137.0                 # block inner face (hub boss outer 136 + 1)
+TOWER_TOP = 178.0                # tower cap top; + block BORE_H 45 = pivot 223
 
 CUBE = 381.0                     # 15" start cube
 
@@ -64,8 +71,8 @@ CUBE = 381.0                     # 15" start cube
 def head_at(phi: float) -> cq.Workplane:
     """Head envelope box at fold angle phi (deg about +X through the pivot)."""
     box = (cq.Workplane("XY")
-           .box(HEAD_W, HEAD_ALONG, HEAD_N)
-           .translate((0, HEAD_ALONG / 2, HEAD_N_CTR)))
+           .box(HEAD_W, HEAD_BACK + HEAD_ALONG, HEAD_N)
+           .translate((0, (HEAD_ALONG - HEAD_BACK) / 2, HEAD_N_CTR)))
     return box.rotate((0, 0, 0), (1, 0, 0), phi).translate(PIVOT)
 
 
@@ -89,10 +96,21 @@ def context() -> list[tuple[str, cq.Workplane, str]]:
     for i, w in enumerate(wheels()):
         parts.append(("Corner wheel (x4)" if i == 0 else "_w", w, "#23262b"))
     for sx in (1, -1):
-        blk = (cq.Workplane("XY").box(24, 40, PIVOT[2] - DECK_Z)
-               .translate((sx * (HEAD_W / 2 + 14), PIVOT[1],
-                           (DECK_Z + PIVOT[2]) / 2)))
+        # tower (stock C-channel proxy) from the deck to TOWER_TOP...
+        blk = (cq.Workplane("XY").box(25, 40, TOWER_TOP - DECK_Z)
+               .translate((sx * (BLOCK_X0 + 12.5), PIVOT[1],
+                           (DECK_Z + TOWER_TOP) / 2)))
         parts.append(("Pivot tower" if sx > 0 else "_t", blk, "#8f9bad"))
+        # ...capped by the printed pivot_block whose bore sits ON the axis.
+        try:
+            import cad.parts.pivot_block as pb
+            b = (pb.make()      # bore is already along X = the pivot axis
+                 .translate((sx * (BLOCK_X0 + pb.WALL_T / 2), PIVOT[1],
+                             TOWER_TOP)))
+            parts.append(("Pivot block (printed)" if sx > 0 else "_b", b,
+                          "#9a6bbf"))
+        except Exception:
+            pass
     parts.append(("Pivot shaft",
                   cq.Workplane("XY").circle(6).extrude(HEAD_W + 60)
                   .translate((0, 0, -(HEAD_W + 60) / 2))

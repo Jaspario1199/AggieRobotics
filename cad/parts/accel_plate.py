@@ -27,7 +27,9 @@ from ..vexlib import grid_points
 XO = BARREL_LEN / 2.0                                   # pulley offset along barrel
 YO = BELT_GAP / 2.0 + PULLEY_PITCH_DIA / 2.0 + BELT_THK  # pulley offset across barrel
 HX = XO + 30.0
-HY = YO + 34.0
+# Cross-width margin is sized so a REAL grid column exists at 9 x 12.7 = 114.3
+# outboard of the motor plates -- the arm-hub tabs bolt there (gate G9a).
+HY = YO + 41.5
 OUTLINE = [(-HX, -HY), (HX, -HY), (HX, HY), (-HX, HY)]
 
 
