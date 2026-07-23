@@ -27,8 +27,10 @@ X0 = FLY_W / 2 + 2.0        # arm inner face: 2 mm outside the wheel (19.5)
 ARM_T = 8.0
 BASE_T = 4.0
 EDGE = BARREL_LEN / 2 + 30.0
-BOLT_PTS = [(2 * VEX_GRID, 5 * VEX_GRID), (3 * VEX_GRID, 5 * VEX_GRID),
-            (2 * VEX_GRID, 6 * VEX_GRID), (3 * VEX_GRID, 6 * VEX_GRID)]
+# Rows 3-4 x GRID: the plow plate covers world y 60..85 on the deck's inner
+# face, so nuts at rows 38.1/50.8 land CLEAR of it (R3 A4).
+BOLT_PTS = [(2 * VEX_GRID, 3 * VEX_GRID), (3 * VEX_GRID, 3 * VEX_GRID),
+            (2 * VEX_GRID, 4 * VEX_GRID), (3 * VEX_GRID, 4 * VEX_GRID)]
 
 Z_FACE = -(SIDE_INNER_HALF + PLATE_THK)     # bottom deck outer face (-91)
 
@@ -39,15 +41,15 @@ def make() -> cq.Workplane:
     base = (cq.Workplane("XY")
             .box(30.0, 2 * VEX_GRID + 20, BASE_T,
                  centered=(True, True, False))
-            .translate((35.0, 5.5 * VEX_GRID, Z_FACE - BASE_T)))
+            .translate((35.0, 3.5 * VEX_GRID, Z_FACE - BASE_T)))
 
     # Drop arm: straight wall from the base down to the bearing boss.
     arm = (cq.Workplane("YZ").workplane(offset=X0)
-           .polyline([(EDGE, Z_FACE - BASE_T), (5 * VEX_GRID - 10, Z_FACE - BASE_T),
-                      (FLY_Y - 14, FLY_Z - 8), (FLY_Y + 14, FLY_Z - 8)])
+           .polyline([(EDGE, Z_FACE - BASE_T), (3 * VEX_GRID - 12, Z_FACE - BASE_T),
+                      (FLY_Y - 16, FLY_Z - 8), (FLY_Y + 16, FLY_Z - 8)])
            .close().extrude(ARM_T))
     boss = (cq.Workplane("YZ").workplane(offset=X0)
-            .center(FLY_Y, FLY_Z).circle(14.0).extrude(ARM_T))
+            .center(FLY_Y, FLY_Z).circle(16.0).extrude(ARM_T))
     m = base.union(arm).union(boss)
 
     # Bearing bore on the flywheel axis.
@@ -56,7 +58,13 @@ def make() -> cq.Workplane:
             .extrude(ARM_T + 2))
     m = m.cut(bore)
 
-    # Bolts through base + deck (nylocks inside the channel under the plow).
+    # Bearing-flat bolt pair at +/-12.7 from the bore (R3 C4).
+    for d in (VEX_GRID, -VEX_GRID):
+        bh = (cq.Workplane("YZ").workplane(offset=X0 - 1)
+              .center(FLY_Y + d, FLY_Z).circle(VEX_HOLE / 2).extrude(ARM_T + 2))
+        m = m.cut(bh)
+
+    # Bolts through base + deck (nylocks clear of the plow plate).
     for (px, py) in BOLT_PTS:
         hole = (cq.Workplane("XY").circle(VEX_HOLE / 2)
                 .extrude(BASE_T + 2).translate((px, py, Z_FACE - BASE_T - 1)))

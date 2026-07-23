@@ -36,10 +36,17 @@ def make() -> cq.Workplane:
     rf = PULLEY_FLANGE_DIA / 2.0
     total = TOTAL_LEN
 
+    # Drum is CROWNED (+0.5 mm at centre, two lofted cones): a flat drum on a
+    # vertical axis lets gravity park the belt on the bottom flange forever
+    # (red-team R3 D5); the crown self-centres it.
+    drum = BELT_WIDTH + DRUM_EXTRA
     p = (
         cq.Workplane("XY")
         .circle(rf).extrude(FLANGE_THK)
-        .faces(">Z").workplane().circle(rp).extrude(BELT_WIDTH + DRUM_EXTRA)
+        .faces(">Z").workplane().circle(rp)
+        .workplane(offset=drum / 2).circle(rp + 0.5).loft(combine=True)
+        .faces(">Z").workplane().circle(rp + 0.5)
+        .workplane(offset=drum / 2).circle(rp).loft(combine=True)
         .faces(">Z").workplane().circle(rf).extrude(FLANGE_THK)
     )
 
@@ -59,12 +66,8 @@ def make() -> cq.Workplane:
     except Exception:
         pass
 
-    # Radial set-screw access into the hub.
-    grub = (
-        cq.Workplane("YZ").transformed(offset=(0, total / 2.0, 0))
-        .circle(SCREW_M3_TAP / 2.0).extrude(rf + 1)
-    )
-    p = p.cut(grub)
+    # NO set screw (R3 D1: M3 in PETG under the belt strips + is unreachable).
+    # Torque: hex bore. Axial retention: VEX shaft collars (BOM).
     return p
 
 

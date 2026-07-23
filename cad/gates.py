@@ -87,7 +87,8 @@ EDGE = P.BARREL_LEN / 2 + 30.0                               # deck fwd edge (y)
 
 PART_IDS = ["deck_top", "deck_bot", "pul_RF", "pul_RB", "pul_LF", "pul_LB",
             "belt_L", "belt_R", "lip_T", "plow", "motor_L", "motor_R",
-            "hub_R", "hub_L", "fly", "fm_R", "fm_L"]
+            "hub_R", "hub_L", "fly", "fm_R", "fm_L",
+            "so_1", "so_2", "so_3", "so_4"]
 
 INTENDED_CONTACT = {
     frozenset(("belt_L", "pul_LF")), frozenset(("belt_L", "pul_LB")),
@@ -97,6 +98,10 @@ INTENDED_CONTACT = {
     frozenset(("hub_R", "deck_top")), frozenset(("hub_R", "deck_bot")),
     frozenset(("hub_L", "deck_top")), frozenset(("hub_L", "deck_bot")),
     frozenset(("fm_R", "deck_bot")), frozenset(("fm_L", "deck_bot")),
+    frozenset(("so_1", "deck_top")), frozenset(("so_1", "deck_bot")),
+    frozenset(("so_2", "deck_top")), frozenset(("so_2", "deck_bot")),
+    frozenset(("so_3", "deck_top")), frozenset(("so_3", "deck_bot")),
+    frozenset(("so_4", "deck_top")), frozenset(("so_4", "deck_bot")),
 }
 
 
@@ -237,7 +242,9 @@ def gate4_mounts(asm):
     for a, b in [("lip_T", "deck_top"), ("plow", "deck_bot"),
                  ("motor_L", "deck_top"), ("motor_R", "deck_top"),
                  ("hub_R", "deck_top"), ("hub_R", "deck_bot"),
-                 ("hub_L", "deck_top"), ("hub_L", "deck_bot")]:
+                 ("hub_L", "deck_top"), ("hub_L", "deck_bot"),
+                 ("so_1", "deck_top"), ("so_1", "deck_bot"),
+                 ("so_3", "deck_top"), ("so_3", "deck_bot")]:
         d = dist(asm[a], asm[b])
         ov = ivol(asm[a], asm[b])
         if not math.isnan(ov) and ov > 1.0:
@@ -480,8 +487,11 @@ def gate10_mass_tipping():
             return
         d = DENS_TPU if n == "drive_belt" else DENS
         head_print += q * G1CACHE[n].val().Volume() * d
-    HEAD_HW = 345 + 345 + 250 + 120 + 5 * 185 + 200   # motors x2, disc, flex
-    head_m = head_print + HEAD_HW                     # wheel, 5 shafts, misc
+    # 3 head motors (2 belt + 1 flywheel -- R3 F12 decision: no cross-link
+    # path exists, so each belt gets a motor; total robot = 8 motors exactly),
+    # 500 g mass disc (R3 F3: <6% droop), flex wheel, 5 shafts, misc.
+    HEAD_HW = 3 * 345 + 500 + 120 + 5 * 185 + 200
+    head_m = head_print + HEAD_HW
     # head CoM ~ mid-envelope, at the FRONT pose
     import math as m
     phi = m.radians(A.FRONT)
@@ -493,7 +503,7 @@ def gate10_mass_tipping():
         (900, 0.0),                    # frame C-channel + deck
         (830, -120.0),                 # battery (rear counterweight)
         (480, -120.0),                 # brain (rear)
-        (350, -120.0),                 # air reservoir + valve (rear)
+        (700, -150.0),                 # steel counterweight (pneumatics deleted)
         (2 * G1CACHE["pivot_block"].val().Volume() * DENS + 600, 155.0),
         (345, 155.0),                  # pivot motor + gears on the tower
         (300, 0.0),                    # cables/misc
@@ -512,33 +522,76 @@ def gate10_mass_tipping():
 
 
 def gate11_launch():
-    """Launch trajectory from the physics constants (no flat-ground formula)."""
+    """Launch trajectory at the REAL pose set (R3 F9: the old gate modelled a
+    pose that didn't exist; world exit angle = LAUNCH_DEG + fold angle)."""
     import math as m
+    import robot.arm as A
     v_rim = m.pi * (P.FLY_DIA / 1000.0) * P.FLY_RPM / 60.0
-    k = 0.5                      # single-wheel transfer factor (assumption)
+    k = 0.5                      # single-wheel transfer factor (bench-tune)
     v0 = k * v_rim
-    th = m.radians(P.LAUNCH_DEG)
-    z0 = 0.21                    # mouth height at the launch poses (m)
-    vx, vz = v0 * m.cos(th), v0 * m.sin(th)
     g = 9.81
-    # barrier: ~1.2 m downrange, 74 mm tall + 80 mm ball radius
-    tb = 1.2 / vx
-    zb = z0 + vz * tb - 0.5 * g * tb * tb
-    clr = zb - (0.074 + 0.080)
-    # range to floor
-    tf = (vz + m.sqrt(vz * vz + 2 * g * z0)) / g
-    rng = vx * tf
-    apex = z0 + vz * vz / (2 * g)
-    add("G11", "exit speed", f"{v0:.1f} m/s (rim {v_rim:.1f}, k={k})", "PASS",
-        "transfer factor k is a bench-tune assumption")
-    add("G11", "barrier clearance @1.2 m", f"{clr * 1000:.0f} mm",
-        "PASS" if clr >= 0.10 else "FAIL")
-    add("G11", "range (max capability)", f"{rng:.2f} m",
-        "PASS" if 2.6 <= rng <= 4.2 else "FAIL",
-        "must exceed the 8 ft (2.44 m) target with margin; match shots run "
-        "at commanded RPM below max and must stay in-field")
-    add("G11", "apex", f"{apex:.2f} m", "PASS",
-        "verify vs elevation-bar height (manual Appendix A)")
+    add("G11", "exit speed", f"{v0:.1f} m/s (rim {v_rim:.1f} @ {P.FLY_RPM:.0f} "
+        f"RPM plateau, k={k})", "PASS", "k is a bench-tune assumption")
+    for name, phi, z0, must_range in [("LAUNCH (phi=0)", A.LAUNCH, 0.22, True),
+                                      ("FRONT (phi=-22)", A.FRONT, 0.19, False)]:
+        th = m.radians(P.LAUNCH_DEG + phi)
+        vx, vz = v0 * m.cos(th), v0 * m.sin(th)
+        tb = 1.2 / vx
+        clr = (z0 + vz * tb - 0.5 * g * tb * tb) - (0.074 + 0.080)
+        tf = (vz + m.sqrt(vz * vz + 2 * g * z0)) / g
+        rng = vx * tf
+        apex = z0 + vz * vz / (2 * g)
+        if must_range:
+            add("G11", f"{name}: range", f"{rng:.2f} m (apex {apex:.2f})",
+                "PASS" if 2.6 <= rng <= 4.2 else "FAIL",
+                "the ranged shot: must beat 8 ft (2.44 m) with margin")
+        else:
+            add("G11", f"{name}: range", f"{rng:.2f} m (apex {apex:.2f})",
+                "PASS", "flat mid-shot from the intake pose - info")
+        add("G11", f"{name}: barrier clearance @1.2 m", f"{clr * 1000:.0f} mm",
+            "PASS" if clr >= 0.10 else "FAIL")
+
+
+def gate12_floor():
+    """Head never digs into the floor through the fold (R3 F10: ungated)."""
+    import robot.arm as A
+    zmin, at = float("inf"), None
+    for phi in A.SWEEP:
+        z = bbox(A.head_at(phi))[2]
+        if z < zmin:
+            zmin, at = z, phi
+    add("G12", "head min world-z over sweep", f"{zmin:.1f} mm at phi={at}",
+        "PASS" if zmin >= -3.0 else "FAIL",
+        "-3 mm allowance = flex-wheel graze at FRONT intake")
+
+
+def gate13_current():
+    """Worst-case simultaneous current vs the V5 battery envelope (R3 F2)."""
+    caps = [("drive x4", 4 * 2.0), ("belt intake x2", 2 * 1.5),
+            ("flywheel", 2.5), ("pivot hold", 1.0), ("brain/radio/sensors", 1.0)]
+    tot = sum(a for _, a in caps)
+    detail = ", ".join(f"{n} {a:.1f}A" for n, a in caps)
+    add("G13", "worst-case current budget", f"{tot:.1f} A ({detail})",
+        "PASS" if tot <= 16.0 else "FAIL",
+        "firmware caps; flywheel recovery interlocked vs full-throttle drive")
+
+
+def gate14_drive():
+    """Drive performance for the ACTUAL robot mass (R3 F1: was 24 N/0.25 g)."""
+    import math as m
+    wheel_rpm = P.DRIVE_CART_RPM * P.DRIVE_RATIO
+    v_robot = m.pi * (P.DRIVE_WHEEL_DIA / 1000) * wheel_rpm / 60 * m.sqrt(2)
+    stall_nm = 0.35 / P.DRIVE_RATIO          # 600-cart stall through the gearing
+    push = 4 * (stall_nm / (P.DRIVE_WHEEL_DIA / 2000)) / m.sqrt(2)
+    mass = 10.4                               # G10 estimate incl. counterweight
+    a0 = push / mass
+    add("G14", "free speed (X-drive, incl sqrt2)",
+        f"{v_robot:.2f} m/s ({v_robot * 3.281:.1f} ft/s) @ {wheel_rpm:.0f} RPM wheel",
+        "PASS" if 1.5 <= v_robot <= 2.6 else "FAIL")
+    add("G14", "push force at stall", f"{push:.0f} N ({push / (mass * 9.81) * 100:.0f}% of weight)",
+        "PASS" if push >= 0.35 * mass * 9.81 else "FAIL")
+    add("G14", "initial acceleration", f"{a0:.1f} m/s2",
+        "PASS" if a0 >= 3.5 else "FAIL")
 
 
 def main():
@@ -558,6 +611,9 @@ def main():
     gate8_stow_cube()
     gate10_mass_tipping()
     gate11_launch()
+    gate12_floor()
+    gate13_current()
+    gate14_drive()
 
     wid = max(len(r[1]) for r in ROWS) + 2
     cur = None

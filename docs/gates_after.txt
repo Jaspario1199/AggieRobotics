@@ -1,66 +1,79 @@
 Running gates (booleans on real B-rep - takes a minute)...
 
 --- G1 ----------------------------------------------------------
-[  ok ] belt_pulley                            solids=1 valid=True
-[  ok ] drive_belt                             solids=1 valid=True
-[  ok ] accel_plate                            solids=1 valid=True
-[  ok ] throat_lip                             solids=1 valid=True
-[  ok ] front_plow                             solids=1 valid=True
-[  ok ] motor_plate                            solids=1 valid=True
-[  ok ] arm_hub                                solids=1 valid=True
-[  ok ] pivot_block                            solids=1 valid=True
-[  ok ] fly_mount                              solids=1 valid=True
+[  ok ] belt_pulley                                 solids=1 valid=True
+[  ok ] drive_belt                                  solids=1 valid=True
+[  ok ] accel_plate                                 solids=1 valid=True
+[  ok ] throat_lip                                  solids=1 valid=True
+[  ok ] front_plow                                  solids=1 valid=True
+[  ok ] motor_plate                                 solids=1 valid=True
+[  ok ] arm_hub                                     solids=1 valid=True
+[  ok ] pivot_block                                 solids=1 valid=True
+[  ok ] fly_mount                                   solids=1 valid=True
 --- G2 ----------------------------------------------------------
-[  ok ] all remaining pairs                    136 pairs overlap<=1 mm3
+[  ok ] all remaining pairs                         210 pairs overlap<=1 mm3
 --- G3 ----------------------------------------------------------
-[  ok ] ball(tip) vs decks/lip/plow/motors     overlap<=1 mm3 at all stations
-[  ok ] ball(body) vs rigid pulleys            overlap<=1 mm3 at all stations
-[  ok ] belt grip                              depth 4.0 mm/side, lens   2533 mm3   <- soft TPU squeeze - intended
+[  ok ] ball(tip) vs decks/lip/plow/motors          overlap<=1 mm3 at all stations
+[  ok ] ball(body) vs rigid pulleys                 overlap<=1 mm3 at all stations
+[  ok ] belt grip                                   depth 4.0 mm/side, lens   3207 mm3   <- soft TPU squeeze - intended
 --- G4 ----------------------------------------------------------
-[  ok ] lip_T -> deck_top mount                contact (gap 0.00 mm)
-[  ok ] plow -> deck_bot mount                 contact (gap 0.00 mm)
-[  ok ] motor_L -> deck_top mount              contact (gap 0.00 mm)
-[  ok ] motor_R -> deck_top mount              contact (gap 0.00 mm)
-[  ok ] hub_R -> deck_top mount                contact (gap 0.00 mm)
-[  ok ] hub_R -> deck_bot mount                contact (gap 0.00 mm)
-[  ok ] hub_L -> deck_top mount                contact (gap 0.00 mm)
-[  ok ] hub_L -> deck_bot mount                contact (gap 0.00 mm)
-[  ok ] lip/plow bolts on deck grid            4/4 land on real holes
-[  ok ] deck bores vs pulley axes              offset 0.00 mm
+[  ok ] lip_T -> deck_top mount                     contact (gap 0.00 mm)
+[  ok ] plow -> deck_bot mount                      contact (gap 0.00 mm)
+[  ok ] motor_L -> deck_top mount                   contact (gap 0.00 mm)
+[  ok ] motor_R -> deck_top mount                   contact (gap 0.00 mm)
+[  ok ] hub_R -> deck_top mount                     contact (gap 0.00 mm)
+[  ok ] hub_R -> deck_bot mount                     contact (gap 0.00 mm)
+[  ok ] hub_L -> deck_top mount                     contact (gap 0.00 mm)
+[  ok ] hub_L -> deck_bot mount                     contact (gap 0.00 mm)
+[  ok ] so_1 -> deck_top mount                      contact (gap 0.00 mm)
+[  ok ] so_1 -> deck_bot mount                      contact (gap 0.00 mm)
+[  ok ] so_3 -> deck_top mount                      contact (gap 0.00 mm)
+[  ok ] so_3 -> deck_bot mount                      contact (gap 0.00 mm)
+[  ok ] lip/plow bolts on deck grid                 4/4 land on real holes
+[  ok ] deck bores vs pulley axes                   offset 0.00 mm
 --- G5 ----------------------------------------------------------
-[  ok ] belt-on-pulley radial fit              tangent (0.0 mm) + 22 mm tension slots   <- tension via rear slots
-[  ok ] belt axial float on drum               5.0 mm
-[  ok ] flange vs ball                         proud -1.0 mm, z-band margin 38.1 mm   <- flange sits outside the ball's z-reach
-[  ok ] rigid drum gap vs ball body            2.0 mm/side   <- belt-only squeeze; drum never touches the rigid ball
-[  ok ] hex bore clearance (AF)                0.35 mm
-[  ok ] lip intrusion (outside tongue)         0.00 mm
-[  ok ] mouth aperture margin over tip         9.0 mm (plow plate 4.0 designed-in)
-[  ok ] intake clearance under tongue          4.0 mm   <- ball on the plate passes under the hood tongue
-[  ok ] launch nip squeeze (wheel vs tongue)   4.0 mm (wheel lifts ball 8.0)   <- flex wheel + ball pinched against the tongue
+[  ok ] belt-on-pulley radial fit                   tangent (0.0 mm) + 22 mm tension slots   <- tension via rear slots
+[  ok ] belt axial float on drum                    5.0 mm
+[  ok ] flange vs ball                              proud -1.0 mm, z-band margin 38.1 mm   <- flange sits outside the ball's z-reach
+[  ok ] rigid drum gap vs ball body                 2.0 mm/side   <- belt-only squeeze; drum never touches the rigid ball
+[  ok ] hex bore clearance (AF)                     0.35 mm
+[  ok ] lip intrusion (outside tongue)              0.00 mm
+[  ok ] mouth aperture margin over tip              9.0 mm (plow plate 4.0 designed-in)
+[  ok ] intake clearance under tongue               4.0 mm   <- ball on the plate passes under the hood tongue
+[  ok ] launch nip squeeze (wheel vs tongue)        4.0 mm (wheel lifts ball 8.0)   <- flex wheel + ball pinched against the tongue
 --- G9 ----------------------------------------------------------
-[  ok ] hub bolts on deck grid                 4/4 land on real holes
-[  ok ] hub web vs deck edge                   gap 1.0 mm
-[  ok ] hub tab vs motor plate                 gap 8.5 mm
-[  ok ] pivot block vs hub boss                gap 1.0 mm
-[  ok ] block bore on pivot axis               offset 0.00 mm
-[  ok ] hub hex bore fit (AF)                  0.35 mm
+[  ok ] hub bolts on deck grid                      4/4 land on real holes
+[  ok ] hub web vs deck edge                        gap 1.0 mm
+[  ok ] hub tab vs motor plate                      gap 8.5 mm
+[  ok ] pivot block vs hub boss                     gap 1.0 mm
+[  ok ] block bore on pivot axis                    offset 0.00 mm
+[  ok ] hub hex bore fit (AF)                       0.35 mm
 --- G6 ----------------------------------------------------------
-[  ok ] pulley: window-to-bore wall            2.52 mm   <- printed PETG, torque path
-[  ok ] pulley: window-to-drum wall            2.95 mm
-[  ok ] belt: web under tread groove           4.90 mm   <- TPU loop integrity
-[  ok ] decks: web between grid holes          7.80 mm
+[  ok ] pulley: window-to-bore wall                 2.52 mm   <- printed PETG, torque path
+[  ok ] pulley: window-to-drum wall                 2.95 mm
+[  ok ] belt: web under tread groove                4.90 mm   <- TPU loop integrity
+[  ok ] decks: web between grid holes               7.80 mm
 --- G7 ----------------------------------------------------------
-[  ok ] head-wheel min clearance               18.5 mm at phi=180.0 deg   <- layout-level (primitive volumes)
+[  ok ] head-wheel min clearance                    18.5 mm at phi=180.0 deg   <- layout-level (primitive volumes)
 --- G8 ----------------------------------------------------------
-[  ok ] stowed robot bbox vs 15" cube          x=360 y=360 z=370 mm (worst margin 11 mm)   <- start-legal with margin
+[  ok ] stowed robot bbox vs 15" cube               x=360 y=360 z=370 mm (worst margin 11 mm)   <- start-legal with margin
 --- G10 ---------------------------------------------------------
-[  ok ] robot mass (est.)                      9.76 kg (head 3.70, printed 1.51)   <- hardware masses are catalog estimates
-[  ok ] static tip margin @ FRONT+ball         CoM y=112 mm vs wheel line 136 -> margin 24 mm   <- keep battery/reservoir rearward
+[  ok ] robot mass (est.)                           10.51 kg (head 4.09, printed 1.31)   <- hardware masses are catalog estimates
+[  ok ] static tip margin @ FRONT+ball              CoM y=109 mm vs wheel line 136 -> margin 27 mm   <- keep battery/reservoir rearward
 --- G11 ---------------------------------------------------------
-[  ok ] exit speed                             6.0 m/s (rim 12.0, k=0.5)   <- transfer factor k is a bench-tune assumption
-[  ok ] barrier clearance @1.2 m               727 mm
-[  ok ] range (max capability)                 3.83 m   <- must exceed the 8 ft (2.44 m) target with margin; match shots run at commanded RPM below max and must stay in-field
-[  ok ] apex                                   0.96 m   <- verify vs elevation-bar height (manual Appendix A)
+[  ok ] exit speed                                  5.4 m/s (rim 10.8 @ 2700 RPM plateau, k=0.5)   <- k is a bench-tune assumption
+[  ok ] LAUNCH (phi=0): range                       3.15 m (apex 0.83)   <- the ranged shot: must beat 8 ft (2.44 m) with margin
+[  ok ] LAUNCH (phi=0): barrier clearance @1.2 m    658 mm
+[  ok ] FRONT (phi=-22): range                      2.20 m (apex 0.33)   <- flat mid-shot from the intake pose - info
+[  ok ] FRONT (phi=-22): barrier clearance @1.2 m   157 mm
+--- G12 ---------------------------------------------------------
+[  ok ] head min world-z over sweep                 -2.6 mm at phi=-22   <- -3 mm allowance = flex-wheel graze at FRONT intake
+--- G13 ---------------------------------------------------------
+[  ok ] worst-case current budget                   15.5 A (drive x4 8.0A, belt intake x2 3.0A, flywheel 2.5A, pivot hold 1.0A, brain/radio/sensors 1.0A)   <- firmware caps; flywheel recovery interlocked vs full-throttle drive
+--- G14 ---------------------------------------------------------
+[  ok ] free speed (X-drive, incl sqrt2)            2.20 m/s (7.2 ft/s) @ 360 RPM wheel
+[  ok ] push force at stall                         40 N (39% of weight)
+[  ok ] initial acceleration                        3.8 m/s2
 
 ==================================================================
-SCORECARD: 50 pass / 0 FAIL / 0 error
+SCORECARD: 60 pass / 0 FAIL / 0 error

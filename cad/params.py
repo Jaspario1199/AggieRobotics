@@ -76,5 +76,17 @@ FLY_W = 35.0              # mm, wheel width (across the mouth)
 FLY_Y = 77.0              # mm, wheel axis y (head frame; mouth edge at 85)
 FLY_TOP = -73.0           # mm, wheel top: 8 above the plow plate top (-81)
 FLY_Z = FLY_TOP - FLY_DIA / 2   # wheel axis z (-111.1)
-FLY_RPM = 3000.0          # 600 RPM cartridge x 5 (12T:60T) at the wheel
-LAUNCH_DEG = 40.0         # exit angle set by the tongue/flare hood geometry
+FLY_RPM = 2700.0          # realistic plateau: 600 cart x 5 (12:60) reaches ~90%
+                          # of no-load speed under drag (3000 was the asymptote)
+LAUNCH_DEG = 40.0         # exit angle in the HEAD frame; world exit = this + fold
+                          # angle, so gates evaluate real poses (G11)
+
+# --- Drivetrain (X-drive) --------------------------------------------------
+# Red-team R3-7: 600 cart ~1:1 was an effective 12 ft/s (X-drive sqrt(2)!) on a
+# ~10 kg robot = 24 N push, near-stall all match. Re-geared 36T:60T.
+DRIVE_CART_RPM = 600.0    # motor cartridge
+DRIVE_RATIO = 36.0 / 60.0 # gear-down at the wheel (0.6 -> 360 RPM wheel)
+DRIVE_WHEEL_DIA = 82.5    # 3.25" omni
+# Intake belt motors: 2x V5 600 RPM cart ~1:1 (one per belt -- the "1 motor +
+# cross-link" plan had no cross-link path; see DESIGN #18). Firmware: 1.5 A cap
+# + jam auto-reverse (250 ms stall -> 300 ms reverse).

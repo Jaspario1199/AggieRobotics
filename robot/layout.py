@@ -32,11 +32,11 @@ def _box(dx, dy, dz, c=(0, 0, 0)):
 
 
 def _electronics():
-    """Battery / brain / air reservoir, low and rearward (counterweight)."""
+    """Battery / brain / counterweight, low and rearward (pneumatics deleted -- R3 F15)."""
     return [
         ("Battery", _box(90, 90, 45, (-95, -120, A.DECK_Z + 25)), "#c24234"),
         ("V5 Brain", _box(120, 80, 40, (95, -120, A.DECK_Z + 23)), "#586170"),
-        ("Air reservoir", _box(60, 150, 60, (0, -105, A.DECK_Z + 33)), "#41b06a"),
+        ("Steel counterweight", _box(60, 100, 40, (0, -140, A.DECK_Z + 23)), "#6b7280"),
     ]
 
 
@@ -131,7 +131,7 @@ def build_all():
         render_pose("Deployed FRONT — floor intake / launch (mouth at ball height)",
                     A.FRONT, os.path.join(PREV, "pose_front.png"),
                     ball=(0, my + 60, BALL_TIP / 2)),
-        render_pose("STOW rear-work — mouth faces rearward (launch / hold / feed)",
+        render_pose("STOW rear-work — HOLD / FEED only (nip inverts: launches are front-side)",
                     A.STOW, os.path.join(PREV, "pose_rear.png"),
                     ball=(0, A.PIVOT[1] - A.HEAD_ALONG - 70, A.PIVOT[2]),
                     azim=-122),

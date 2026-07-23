@@ -782,7 +782,70 @@ regression-run after every change (`docs/gates_baseline.txt` → `docs/gates_aft
 6. `HEAD_ALONG = 333 mm` includes a ±20 mm flywheel-protrusion estimate — pin it
    down when the launcher hood CAD is integrated into the head assembly.
 
+## 17. Critique round 3 — hard DFM + power/systems red-teams (v1.4 input)
+
+Two independent adversarial reviews (full findings in the v1.4 commit message
+and fix log below). The 50/50 gate pass was real but NARROW: gates verified
+static geometry, not mechanism logic, fasteners, print orientation, power, or
+service access. Headline findings:
+
+**Blockers**
+- R3-1 Motors geared to the TENSION-SLOT shafts: tensioning breaks the 1.5"
+  gear mesh; the drive shaft's bottom bearing floats in a slot.
+- R3-2 Closed-loop TPU belt: unprintable in any good orientation (110 mm TPU
+  bridge or a 120 mm stacked Z-seam through the nip) AND unserviceable (no
+  axial path over deck-captured pulleys -- a belt swap was a pit teardown).
+- R3-3 No belt cross-link: BOM said 1 motor "cross-linked", CAD had 2 plates
+  and no linking transmission.
+- R3-4 Head decks joined ONLY by two 4 mm printed tabs at the rear; the BOM's
+  "metal spine" didn't exist; the launch nip pries the unsupported muzzle.
+- R3-5 fly_mount nuts land inside the plow plate footprint (cannot assemble).
+- R3-6 STOW "rear launch" fires 40 deg DOWNWARD (inverted nip) with ~1 mm
+  engagement -- the rear-launch claim was geometrically false.
+- R3-7 Drive gearing overspeed: X-drive sqrt(2) forgotten -> effective 12 ft/s
+  on 9.8 kg = 24 N push (0.25 g), 3.6x under traction, near-stall thermal
+  death; FLY_RPM=3000 was the motor's no-load asymptote; G11 modelled a launch
+  pose that doesn't exist (real FRONT exit = 18 deg).
+
+**Major clusters:** ghost parts (flywheel motor mount, hard-stop, latch,
+sensor mounts, tracking pods); no power budget (~17 A worst vs ~20 A); intake
+cartridge unspecified + no jam handling; pivot sized on stale 1.6 kg head
+(real 3.7 kg); set screws in printed bosses; printed hex bores vs BOM's
+metal-hub promise; no drum crown (belt parks on a flange); no grip backing
+behind the belt runs; bearing flats un-mountable anywhere (no hole pairs);
+fastener stacks eat the 9 mm tip margin; zombie pneumatics subsystem; cable
+routing over the 202 deg fold undesigned; deck notch open edges in the ball
+path; 1.0 mm running clearances.
+
+## 18. Round-3 fix log (v1.4) + tracked items
+
+**Implemented and gate-verified (60 pass / 0 fail):** all four deck bores FIXED
+(tension via lace length — R3-1); belt re-designed as LACED TPU STRIPS (R3-2/C1);
+2 belt motors replace the phantom cross-link (R3-3; robot = 8/8 motors); 4 muzzle
+standoffs close the nip pry path (R3-4); fly-mount bolts moved clear of the plow
+(R3-5); STOW rear-launch claim retracted — rear = HOLD/FEED, launches front-side
+(R3-6, poses + captions + BOM corrected); drive re-geared 36:60 → 7.2 ft/s,
+40 N push, 3.8 m/s² (G14); FLY_RPM → 2700 plateau, 500 g disc, G11 evaluates the
+REAL pose set (LAUNCH φ=0: 3.15 m range; FRONT: 2.20 m flat shot); crowned drums
+(D5); set screws deleted → shaft collars (D1); bearing-flat hole pairs at every
+bore (C4); blade 6 mm + filleted slot (D4); lip plate covers the notch ceiling
+(E1); pneumatics deleted → 700 g steel counterweight (F15); power budget gated
+15.5 A (G13); floor-dig gated (G12); pivot re-sized against the 4.1 kg head (F7).
+
+**TRACKED (named, solutioned, not yet modeled):** flywheel-motor mount plate;
+deployed hard-stop (tab on pivot_block + pad on arm_hub) and passive over-center
+latch + release; heat-set inserts at the hub/deck joints (C2) and lip fastener
+flip (C3); grip-backing platen rails behind the belt inner runs (D6); mouth
+corner fairings (E2); cable drum + clamp bosses on the hub (F13); distance-sensor
+pocket, radio mast, 2 tracking pods (F14); metal arm-hub fallback (D3); wider
+fly-mount stance housing wheel+disc between bearings with ball bearings (D7);
+assembly-order doc + spares kit (F6). Bench items unchanged: throat capture,
+launch k-factor, TPU lace fatigue.
+
 ## 12. Change log
+- **v1.4** — round-3 hard critique (§17) systematically fixed: 21-part assembly,
+  8 motors, re-geared drive, laced belts, fixed bores, standoffs, honest rear-work
+  claim, pose-true trajectory gate, power/floor/drive gates. 60 pass / 0 fail.
 - **v1.3** — flag-closure + launcher integration, all gate-driven (50 pass/0 fail):
   lip gets integral ribs (support-free print) + the launcher HOOD TONGUE; deck/
   plow slotted; **under-mouth reversible flywheel** (3" flex wheel + mass disc,

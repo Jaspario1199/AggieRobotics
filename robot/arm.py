@@ -62,6 +62,10 @@ HEAD_N_CTR = (HEAD_N_HI + HEAD_N_LO) / 2
 PIVOT = (0.0, 155.0, 219.0)      # shoulder axis (along X)
 STOW = 180.0                     # start pose (in-cube), mouth rearward
 FRONT = -22.0                    # floor intake: mouth low, wheel grazes floor
+LAUNCH = 0.0                     # hard-stopped launch pose: world exit = 40 deg
+# NOTE (R3-6): at STOW the head is INVERTED, so the nip fires DOWNWARD -- the
+# rear "launch" claim was false. Rear work at STOW = HOLD / FEED only; all
+# launches are front-side (LAUNCH or FRONT pose) after a ~0.3 s yaw.
 SWEEP = list(range(int(FRONT), int(STOW) + 1, 15)) + [STOW]
 
 # chassis-side pivot bearing blocks (cad/parts/pivot_block.py)
@@ -78,8 +82,11 @@ def head_at(phi: float) -> cq.Workplane:
     main = (cq.Workplane("XY")
             .box(HEAD_W, HEAD_BACK + HEAD_ALONG, 118.0 + 97.0)
             .translate((0, (HEAD_ALONG - HEAD_BACK) / 2, (118.0 - 97.0) / 2)))
-    lobe = (cq.Workplane("XY").box(44, 80, 61)
-            .translate((0, 210, -120.5)))
+    # lobe as a CYLINDER (a box's corners falsely dug 14 mm into the floor)
+    lobe = (cq.Workplane("XY").circle(40.0).extrude(44)
+            .translate((0, 0, -22))
+            .rotate((0, 0, 0), (0, 1, 0), 90)
+            .translate((0, 210, -111)))
     box = main.union(lobe)
     return box.rotate((0, 0, 0), (1, 0, 0), phi).translate(PIVOT)
 

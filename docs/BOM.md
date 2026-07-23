@@ -6,8 +6,9 @@ only** (VEXU rule VUR — non-VEX COTS mechanicals are illegal); **custom parts 
 **confirm the exact part number in the current VEX catalog before ordering** (SKUs
 drift between catalog revisions).
 
-Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
-2.5 A current — VEXos throttles past 8). Pneumatics: **≤2 VEX reservoirs, 100 psi**.
+Motor budget: **8 of 8** V5 Smart Motors (at the ≤8 full-current limit exactly).
+Pneumatics: **DELETED** (nothing left to actuate — R3 F15); the fold latch is a
+passive mechanical over-center (tracked part).
 
 ## S1 — Chassis / structure  (purchased: VEX; some custom plate)
 | Item | Qty | Purpose | Source |
@@ -26,19 +27,21 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 | ½" high-strength shaft | 4 | wheel axles | VEX |
 | High-strength bearing flat | 8 | axle supports | VEX |
 | Shaft collar | 8 | axle retention | VEX |
-| High-strength spur gears (drive ratio) | 8 | ~1:1 speed | VEX |
+| High-strength spur gears **36T:60T** | 8 | 360 RPM wheel — R3 F1 re-gear (was an effective 12 ft/s / 24 N push) | VEX |
 
 ## S3 — Belt intake head  (purchased: VEX shafts/gears/bearings; custom: printed)
 | Item | Qty | Purpose | Source |
 |------|----:|---------|--------|
 | `belt_pulley` (metal-hub or heat-set) | 4 | belts ride on these | **printed** + VEX hub |
-| `drive_belt` (**TPU**, 6 mm) | 2 | grip the ~4.3" ball body (squeeze lives in the belt) | **printed (TPU)** |
+| `drive_belt` **laced TPU strips** (2 per belt) | 4 | printable flat, laced shut in place with a 1.75 mm filament pin — 5-min belt swaps, no seam through the nip (R3 B2/C1) | **printed (TPU)** |
+| Lace pins (1.75 mm filament / music wire) | 4 | close the belt loops; length sets tension (bores now all FIXED) | fastener |
 | `accel_plate` deck (PETG) | 2 | pulley mounts / ball channel | **printed** |
 | `throat_lip` (PETG) | 1 | flared TOP mouth guide, bolts to the deck grid | **printed** |
 | `front_plow` (PETG) | 1 | bottom ramp + push blade + bottom mouth guide | **printed** |
-| **Metal spine** (C-channel/plate) | 1 | primary load path behind the printed shells | VEX |
-| V5 Smart Motor | 1 | belt intake (L/R cross-linked) | VEX |
-| ½" hex shaft + bearings + collars | 4 sets | pulley shafts | VEX |
+| Muzzle standoffs (deck-to-deck) | 4 | close the launch-nip pry path at the mouth corners (R3 A3) | VEX |
+| Flat steel strips along deck outer faces | 2 | the "metal spine" — belt-tension load path (hardware, not modeled) | VEX |
+| V5 Smart Motor (600 cart, 1.5 A cap) | 2 | one per belt — no cross-link path existed (R3 A2); jam auto-reverse in firmware | VEX |
+| ½" hex shaft + bearing flats + shaft collars | 4 sets | pulley shafts (bearing-flat hole pairs now modeled at every bore — R3 C4; collars replace the deleted set screws — R3 D1) | VEX |
 
 ## S4 — Fold arm  (purchased: VEX + pneumatics; custom: brackets)
 | Item | Qty | Purpose | Source |
@@ -46,16 +49,16 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 | ½" high-strength hex pivot shaft | 1 | shoulder axis (hubs keyed to it) | VEX |
 | `arm_hub` (PETG, print 2nd MIRRORED) | 2 | keys the head to the pivot shaft; bolts to both decks on the grid | **printed** |
 | `pivot_block` (PETG) | 2 | chassis-side bearing blocks on the towers (dual shear, VEX bearing flats) | **printed** |
-| V5 Smart Motor + gearbox (~7:1, **100 RPM cart.**) | 1 | fold actuation, holds ~5.6 N·m | VEX |
+| V5 Smart Motor + gearbox (~7:1, **100 RPM cart.**) | 1 | fold actuation — re-sized for the REAL 4.1 kg head: hold ≈7 N·m of 14.7 capacity; hard-stop carries the deployed pose | VEX |
+| Shaft collars (pivot shaft) | 4 | axial retention of hubs (set screws deleted — R3 D1) | VEX |
+| V5 Rotation Sensor (pivot shaft) | 1 | direct angle: motor-encoder-through-7:1 backlash is ±2–3° at the head | VEX |
 | Over-center latch (passive) | 1 | holds folded pose powered-off (inspection) | printed/VEX |
 | Deployed hard-stop | 1 | fixes launch angle, off motor hold | printed/VEX |
 
-## S5 — Pneumatics  (purchased: VEX pneumatics)
-| Item | Qty | Purpose | Source |
-|------|----:|---------|--------|
-| Air reservoir | 1 (≤2) | supply | VEX |
-| Solenoid valve (single/double-acting) | 2 | slide + latch | VEX |
-| Regulator + tubing + fittings | 1 set | 100 psi max plumbing | VEX |
+## S5 — (deleted) Pneumatics
+Removed in v1.4 (R3 F15): the slide is gone and the fold latch went passive, so
+nothing pneumatic actuates anything. The 700 g steel counterweight (rear, low)
+replaces the reservoir's counterbalance role — fabricate from plate stock.
 
 ## S6 — Power / electronics / sensing  (purchased: VEX)
 | Item | Qty | Purpose | Source |
@@ -72,20 +75,24 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 | Item | Qty | Purpose | Source |
 |------|----:|---------|--------|
 | 3" flex wheel (soft) + ½" hex shaft | 1 | the launcher wheel — its compliance IS the nip give | VEX |
-| Fabricated steel mass disc | 1 | flywheel energy store beside the flex wheel | fabricated |
+| Fabricated steel mass disc **Ø88 × ~10 mm, ~500 g** | 1 | flywheel store sized for <6% droop/shot (R3 F3) | fabricated |
 | `fly_mount` (PETG, print 2nd MIRRORED) | 2 | hangs the wheel under the mouth; VEX bearing flats | **printed** |
-| High-strength gears 12T:60T | 2 | 600 RPM cart → 3000 RPM at the wheel | VEX |
+| V5 Smart Motor (600 cart) | 1 | flywheel drive (mount = tracked part) | VEX |
+| High-strength gears 12T:60T | 2 | 600 cart → ~2700 RPM plateau at the wheel (3000 is the no-load asymptote — R3 F3) | VEX |
 | *(hood)* — the `throat_lip` TONGUE is the hood | — | ball squeezed wheel↔tongue; no extra part, no extra DOF | — |
 
 ---
 
-**Launcher is reversible**: spinning inward it is an intake-assist roller at the
-mouth; stopped it retains; reversed at speed it fires (gate G11 trajectory).
+**Launcher is reversible**: spinning inward it is an intake-assist roller;
+stopped it retains; reversed at speed it fires — **front-side only** (R3-6: at
+STOW the head inverts and the nip fires downward; rear work = HOLD/FEED, all
+launches happen at the LAUNCH/FRONT poses after a ~0.3 s yaw).
 
-### Motor tally (7)
-4 drive · 1 belt intake · 1 flywheel · 1 arm pivot  → **7** (1 spare port reserved
-for a 2nd flywheel or an endgame hook). The fold latch is **pneumatic**; the
-telescoping slide was REMOVED in the gate-driven refinement (see DESIGN.md §16).
+### Motor tally (8 of 8)
+4 drive · 2 belt intake · 1 flywheel · 1 arm pivot → **8** (the spare went to
+the second belt motor when the cross-link proved to have no path — R3 A2).
+Firmware caps per gate G13: drive 4×2.0 A, belts 2×1.5 A, flywheel 2.5 A
+(interlocked vs full-throttle drive), pivot 1.0 A → 15.5 A worst case.
 
 ### Team note
 This is the **15" scorer**; the team's **24" robot handles elevation** (endgame

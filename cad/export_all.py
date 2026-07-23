@@ -58,7 +58,7 @@ def _place_accelerator():
 
     bp_mod = importlib.import_module("cad.parts.belt_pulley")
     pulley = bp_mod.make()
-    belt = importlib.import_module("cad.parts.drive_belt").make()
+    belt = importlib.import_module("cad.parts.drive_belt").make_loop()
     plate = importlib.import_module("cad.parts.accel_plate").make()
     lip = importlib.import_module("cad.parts.throat_lip").make()
     plow = importlib.import_module("cad.parts.front_plow").make()
@@ -127,6 +127,18 @@ def _place_accelerator():
     fm = importlib.import_module("cad.parts.fly_mount").make()
     named.append(("Flywheel mount (x2)", fm, "#41b06a"))
     named.append(("_fm_L", fm.mirror("YZ"), "#41b06a"))
+
+    # Muzzle standoffs (VEX hardware): deck-to-deck columns at the mouth
+    # corners so the launch nip cannot pry the top deck open (R3 A3 -- the
+    # decks were previously joined only by the rear hub tabs).
+    first = True
+    for sx in (1, -1):
+        for wy in (5 * P.VEX_GRID, 6 * P.VEX_GRID):
+            so = (cq.Workplane("XY").circle(4.75).extrude(2 * ZH)
+                  .translate((sx * 9 * P.VEX_GRID, wy, -ZH)))
+            named.append(("Muzzle standoff (x4, hw)" if first else "_so",
+                          so, "#c9cfd8"))
+            first = False
 
     ball = ((0.0, -8.0, -ZH + P.TRIBALL_DIA / 2.0), P.TRIBALL_DIA / 2.0)
     return named, ball

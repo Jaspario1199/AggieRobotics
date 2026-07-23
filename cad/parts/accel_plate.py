@@ -43,11 +43,18 @@ def make() -> cq.Workplane:
     # Front (muzzle) pulley bores -- fixed.
     plate = plate.faces(">Z").workplane().pushPoints([(XO, YO), (XO, -YO)]).hole(VEX_SHAFT_CLEAR)
 
-    # Rear (breach) pulley bores -- tension slots along the barrel.
-    for (bx, by) in [(-XO, YO), (-XO, -YO)]:
-        plate = (plate.faces(">Z").workplane()
-                 .moveTo(bx, by).slot2D(VEX_SHAFT_CLEAR + 22, VEX_SHAFT_CLEAR, 0)
-                 .cutThruAll())
+    # Rear (breach) pulley bores -- FIXED (R3 A1: sliding tension slots broke
+    # the motor gear mesh and floated the drive-shaft bearings; belt tension is
+    # now set by the laced-strip belt's lace length).
+    plate = (plate.faces(">Z").workplane()
+             .pushPoints([(-XO, YO), (-XO, -YO)]).hole(VEX_SHAFT_CLEAR))
+
+    # Bearing-flat bolt pairs at +/-12.7 mm along the barrel from EVERY bore
+    # (R3 C4: VEX bearing flats need these two holes; the grid keepouts had
+    # deleted every candidate).
+    bpts = [(sx * XO + d, sy * YO)
+            for sx in (1, -1) for sy in (1, -1) for d in (VEX_GRID, -VEX_GRID)]
+    plate = plate.faces(">Z").workplane().pushPoints(bpts).hole(VEX_HOLE)
 
     # Flywheel notch: the under-mouth launcher wheel passes through the deck at
     # the muzzle centre (open to the forward edge). The part stays flip-
@@ -58,7 +65,7 @@ def make() -> cq.Workplane:
     # 0.5" VEX grid across the whole deck, clear of the bores.
     holes = grid_points(
         OUTLINE, VEX_GRID, margin=VEX_HOLE / 2 + 3.0,
-        keepouts=[(XO, YO, 14.0), (XO, -YO, 14.0), (-XO, YO, 22.0), (-XO, -YO, 22.0)],
+        keepouts=[(XO, YO, 17.5), (XO, -YO, 17.5), (-XO, YO, 17.5), (-XO, -YO, 17.5)],
     )
     plate = plate.faces(">Z").workplane().pushPoints(holes).hole(VEX_HOLE)
 

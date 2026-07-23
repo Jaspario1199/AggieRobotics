@@ -73,11 +73,8 @@ def make() -> cq.Workplane:
             .center(PIV_Y, 0).polygon(6, ac).extrude(BOSS_LEN + 2))
     hub = hub.cut(bore)
 
-    # Radial set-screw into the boss (locks hub-to-shaft phase).
-    grub = (cq.Workplane("XY")
-            .circle(SCREW_M3_TAP / 2).extrude(BOSS_R + 4)
-            .translate((X0 + BOSS_LEN - 5, PIV_Y, 0)))
-    hub = hub.cut(grub)
+    # NO set screw (R3 D1): the hex bore keys torque; axial retention is VEX
+    # shaft collars on the pivot shaft either side of the boss (BOM S4).
 
     # Tab bolt holes: one column, two rows, straight through BOTH tabs.
     for hy in BOLT_ROWS:
