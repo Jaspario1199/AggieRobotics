@@ -71,12 +71,16 @@ Motor budget: **7 of 8** V5 Smart Motors (staying ≤8 keeps every motor at full
 ## S7 — Launcher  (purchased: VEX; custom: hood)
 | Item | Qty | Purpose | Source |
 |------|----:|---------|--------|
-| Flywheel (metal-mass) + ½" hex | 1 | energy store for a repeatable shot | VEX / fabricated |
-| V5 Smart Motor (geared up) | 1 | spin the flywheel | VEX |
-| `compression_hood` (PETG) | 1 | holds ball on the wheel, sets ~42° | **printed** |
-| High-strength gears (up-ratio) | 2 | flywheel speed | VEX |
+| 3" flex wheel (soft) + ½" hex shaft | 1 | the launcher wheel — its compliance IS the nip give | VEX |
+| Fabricated steel mass disc | 1 | flywheel energy store beside the flex wheel | fabricated |
+| `fly_mount` (PETG, print 2nd MIRRORED) | 2 | hangs the wheel under the mouth; VEX bearing flats | **printed** |
+| High-strength gears 12T:60T | 2 | 600 RPM cart → 3000 RPM at the wheel | VEX |
+| *(hood)* — the `throat_lip` TONGUE is the hood | — | ball squeezed wheel↔tongue; no extra part, no extra DOF | — |
 
 ---
+
+**Launcher is reversible**: spinning inward it is an intake-assist roller at the
+mouth; stopped it retains; reversed at speed it fires (gate G11 trajectory).
 
 ### Motor tally (7)
 4 drive · 1 belt intake · 1 flywheel · 1 arm pivot  → **7** (1 spare port reserved

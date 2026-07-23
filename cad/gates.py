@@ -87,7 +87,7 @@ EDGE = P.BARREL_LEN / 2 + 30.0                               # deck fwd edge (y)
 
 PART_IDS = ["deck_top", "deck_bot", "pul_RF", "pul_RB", "pul_LF", "pul_LB",
             "belt_L", "belt_R", "lip_T", "plow", "motor_L", "motor_R",
-            "hub_R", "hub_L"]
+            "hub_R", "hub_L", "fly", "fm_R", "fm_L"]
 
 INTENDED_CONTACT = {
     frozenset(("belt_L", "pul_LF")), frozenset(("belt_L", "pul_LB")),
@@ -96,6 +96,7 @@ INTENDED_CONTACT = {
     frozenset(("motor_L", "deck_top")), frozenset(("motor_R", "deck_top")),
     frozenset(("hub_R", "deck_top")), frozenset(("hub_R", "deck_bot")),
     frozenset(("hub_L", "deck_top")), frozenset(("hub_L", "deck_bot")),
+    frozenset(("fm_R", "deck_bot")), frozenset(("fm_L", "deck_bot")),
 }
 
 
@@ -107,13 +108,18 @@ def load_assembly():
     return {pid: wp for pid, (_, wp, _) in zip(PART_IDS, named)}, ball
 
 
+G1CACHE = {}
+
+
 def gate1_parts():
     import importlib
     for name in ["belt_pulley", "drive_belt", "accel_plate", "throat_lip",
-                 "front_plow", "motor_plate", "arm_hub", "pivot_block"]:
+                 "front_plow", "motor_plate", "arm_hub", "pivot_block",
+                 "fly_mount"]:
         try:
             mod = importlib.import_module(f"cad.parts.{name}")
             w = mod.make()
+            G1CACHE[name] = w
             ss = w.solids().vals()
             n = len(ss)
             valid = all(s.isValid() for s in ss)
@@ -163,6 +169,11 @@ def _rest_z(y):
     if dy < R:
         # tangent to the plate's top segment (dy=0 -> flat contact, +R)
         z = max(z, (-ZH + 4.0) + math.sqrt(R * R - dy * dy))
+    # riding over the under-mouth flywheel (external tangency)
+    dw = abs(y - P.FLY_Y)
+    reach = R + P.FLY_DIA / 2
+    if dw < reach:
+        z = max(z, P.FLY_Z + math.sqrt(reach * reach - dw * dw))
     return z
 
 
@@ -176,6 +187,9 @@ def gate3_ball_path(asm):
                .translate((0, y, _rest_z(y))))
         tb = bbox(tip)
         for k in z_parts:
+            if k == "lip_T" and 45 <= y <= 110:
+                continue   # nip zone: ball squeezed on the tongue BY DESIGN;
+                           # the squeeze is gated analytically in G5
             if not bb_overlap(tb, zbbs[k]):
                 continue
             ov = ivol(tip, asm[k])
@@ -295,16 +309,32 @@ def gate5_fits(asm):
 
     # Mouth aperture from the ACTUAL placed solids: lip must not dip below the
     # channel plane; plow plate intrusion is designed-in.
-    lip_zmin = bbox(asm["lip_T"])[2]
-    lip_intr = max(0.0, ZH - lip_zmin)
+    import cad.parts.throat_lip as tl
+    outer = asm["lip_T"].intersect(
+        cq.Workplane("XY").box(600, 600, 600)
+        .translate((300 + tl.TONGUE_HALF_W + 2, 0, 0)))
+    lip_intr = max(0.0, ZH - bbox(outer)[2])
     plow_zmax = bbox(asm["plow"])[5]
     plow_intr = max(0.0, plow_zmax + ZH)
     aperture = 2 * ZH - lip_intr - plow_intr - P.TRIBALL_TIP
-    add("G5", "lip intrusion into aperture", f"{lip_intr:.2f} mm",
+    add("G5", "lip intrusion (outside tongue)", f"{lip_intr:.2f} mm",
         "PASS" if lip_intr <= 0.05 else "FAIL")
     add("G5", "mouth aperture margin over tip",
         f"{aperture:.1f} mm (plow plate {plow_intr:.1f} designed-in)",
         "PASS" if aperture >= 6.0 else "FAIL")
+    # Launcher nip (analytic): under-mouth wheel vs the lip's hood tongue.
+    plate_top = -ZH + 4.0
+    tongue_bot = ZH - tl.TONGUE_DROP        # world 80
+    intake_clr = tongue_bot - (plate_top + P.TRIBALL_TIP)
+    squeeze = (P.FLY_TOP + P.TRIBALL_TIP) - tongue_bot
+    lift = P.FLY_TOP - plate_top
+    add("G5", "intake clearance under tongue", f"{intake_clr:.1f} mm",
+        "PASS" if intake_clr >= 3.0 else "FAIL",
+        "ball on the plate passes under the hood tongue")
+    add("G5", "launch nip squeeze (wheel vs tongue)",
+        f"{squeeze:.1f} mm (wheel lifts ball {lift:.1f})",
+        "PASS" if 3.0 <= squeeze <= 8.0 else "FAIL",
+        "flex wheel + ball pinched against the tongue")
 
 
 def gate6_walls():
@@ -428,6 +458,89 @@ def gate9_arm_link(asm):
         "PASS" if 0.2 <= P.VEX_HEX_CLEAR <= 0.6 else "FAIL")
 
 
+def gate10_mass_tipping():
+    """Mass roll-up + static tip margin at the FRONT deploy pose.
+
+    Printed masses = real solid volumes x effective print density; hardware
+    masses are ESTIMATES (VEX catalog ballpark) -- all assumptions printed.
+    """
+    try:
+        import robot.arm as A
+    except Exception as e:
+        add("G10", "mass/tipping", f"layout not importable: {e}", "ERROR")
+        return
+    DENS = 0.0008          # g/mm3, PETG at 4 walls / 40% infill (assumption)
+    DENS_TPU = 0.0009
+    QTY = {"belt_pulley": 4, "drive_belt": 2, "accel_plate": 2, "throat_lip": 1,
+           "front_plow": 1, "motor_plate": 2, "arm_hub": 2, "fly_mount": 2}
+    head_print = 0.0
+    for n, q in QTY.items():
+        if n not in G1CACHE:
+            add("G10", "mass/tipping", f"missing part {n}", "ERROR")
+            return
+        d = DENS_TPU if n == "drive_belt" else DENS
+        head_print += q * G1CACHE[n].val().Volume() * d
+    HEAD_HW = 345 + 345 + 250 + 120 + 5 * 185 + 200   # motors x2, disc, flex
+    head_m = head_print + HEAD_HW                     # wheel, 5 shafts, misc
+    # head CoM ~ mid-envelope, at the FRONT pose
+    import math as m
+    phi = m.radians(A.FRONT)
+    ly, lz = 150.0, -10.0
+    head_y = A.PIVOT[1] + ly * m.cos(phi) - lz * m.sin(phi)
+    ball_y = A.PIVOT[1] + 300.0 * m.cos(phi)
+    chassis = [  # (mass g, y mm) -- estimates
+        (4 * (345 + 90 + 80), 0.0),    # 4 corner drive modules
+        (900, 0.0),                    # frame C-channel + deck
+        (830, -120.0),                 # battery (rear counterweight)
+        (480, -120.0),                 # brain (rear)
+        (350, -120.0),                 # air reservoir + valve (rear)
+        (2 * G1CACHE["pivot_block"].val().Volume() * DENS + 600, 155.0),
+        (345, 155.0),                  # pivot motor + gears on the tower
+        (300, 0.0),                    # cables/misc
+    ]
+    M = head_m + sum(mm for mm, _ in chassis) + 138.0
+    My = head_m * head_y + sum(mm * yy for mm, yy in chassis) + 138.0 * ball_y
+    com_y = My / M
+    margin = 136.0 - com_y   # front wheel contact line at y=136
+    add("G10", "robot mass (est.)", f"{M / 1000:.2f} kg "
+        f"(head {head_m / 1000:.2f}, printed {head_print / 1000:.2f})", "PASS",
+        "hardware masses are catalog estimates")
+    add("G10", "static tip margin @ FRONT+ball",
+        f"CoM y={com_y:.0f} mm vs wheel line 136 -> margin {margin:.0f} mm",
+        "PASS" if margin >= 20.0 else "FAIL",
+        "keep battery/reservoir rearward")
+
+
+def gate11_launch():
+    """Launch trajectory from the physics constants (no flat-ground formula)."""
+    import math as m
+    v_rim = m.pi * (P.FLY_DIA / 1000.0) * P.FLY_RPM / 60.0
+    k = 0.5                      # single-wheel transfer factor (assumption)
+    v0 = k * v_rim
+    th = m.radians(P.LAUNCH_DEG)
+    z0 = 0.21                    # mouth height at the launch poses (m)
+    vx, vz = v0 * m.cos(th), v0 * m.sin(th)
+    g = 9.81
+    # barrier: ~1.2 m downrange, 74 mm tall + 80 mm ball radius
+    tb = 1.2 / vx
+    zb = z0 + vz * tb - 0.5 * g * tb * tb
+    clr = zb - (0.074 + 0.080)
+    # range to floor
+    tf = (vz + m.sqrt(vz * vz + 2 * g * z0)) / g
+    rng = vx * tf
+    apex = z0 + vz * vz / (2 * g)
+    add("G11", "exit speed", f"{v0:.1f} m/s (rim {v_rim:.1f}, k={k})", "PASS",
+        "transfer factor k is a bench-tune assumption")
+    add("G11", "barrier clearance @1.2 m", f"{clr * 1000:.0f} mm",
+        "PASS" if clr >= 0.10 else "FAIL")
+    add("G11", "range (max capability)", f"{rng:.2f} m",
+        "PASS" if 2.6 <= rng <= 4.2 else "FAIL",
+        "must exceed the 8 ft (2.44 m) target with margin; match shots run "
+        "at commanded RPM below max and must stay in-field")
+    add("G11", "apex", f"{apex:.2f} m", "PASS",
+        "verify vs elevation-bar height (manual Appendix A)")
+
+
 def main():
     print("Running gates (booleans on real B-rep - takes a minute)...\n")
     gate1_parts()
@@ -443,6 +556,8 @@ def main():
     gate6_walls()
     gate7_arm_sweep()
     gate8_stow_cube()
+    gate10_mass_tipping()
+    gate11_launch()
 
     wid = max(len(r[1]) for r in ROWS) + 2
     cur = None

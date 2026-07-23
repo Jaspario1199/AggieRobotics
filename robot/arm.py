@@ -49,30 +49,38 @@ DECK_Z = 25.0
 # Width now includes the ARM HUB bosses (cad/parts/arm_hub.py: boss outer face
 # at x = 128.5 per side); BACK is the boss radius behind the pivot plane.
 HEAD_W = 272.0                   # across belts incl. hub bosses (2 x 136)
-HEAD_ALONG = 333.0               # pivot plane -> flare tip + flywheel allowance
+HEAD_ALONG = 333.0               # pivot plane -> flare tip (launcher is BELOW,
+                                 # not beyond, the mouth -- no length estimate)
 HEAD_BACK = 16.0                 # hub boss radius behind the pivot plane
-HEAD_N_LO, HEAD_N_HI = -97.0, 128.0   # normal extents (hub webs to -97)
+# Normal extents: under-mouth flywheel bottom -149 (-151 w/ margin); slimmed
+# flare top 116 (+118 w/ margin).
+HEAD_N_LO, HEAD_N_HI = -151.0, 118.0
 HEAD_N = HEAD_N_HI - HEAD_N_LO
 HEAD_N_CTR = (HEAD_N_HI + HEAD_N_LO) / 2
 
 # --- arm ------------------------------------------------------------------
-PIVOT = (0.0, 155.0, 223.0)      # shoulder axis (along X); z raised for G7
+PIVOT = (0.0, 155.0, 219.0)      # shoulder axis (along X)
 STOW = 180.0                     # start pose (in-cube), mouth rearward
-FRONT = -25.0                    # floor-intake / forward-launch pose
+FRONT = -22.0                    # floor intake: mouth low, wheel grazes floor
 SWEEP = list(range(int(FRONT), int(STOW) + 1, 15)) + [STOW]
 
 # chassis-side pivot bearing blocks (cad/parts/pivot_block.py)
 BLOCK_X0 = 137.0                 # block inner face (hub boss outer 136 + 1)
-TOWER_TOP = 178.0                # tower cap top; + block BORE_H 45 = pivot 223
+TOWER_TOP = 174.0                # tower cap top; + block BORE_H 45 = pivot 219
 
 CUBE = 381.0                     # 15" start cube
 
 
 def head_at(phi: float) -> cq.Workplane:
-    """Head envelope box at fold angle phi (deg about +X through the pivot)."""
-    box = (cq.Workplane("XY")
-           .box(HEAD_W, HEAD_BACK + HEAD_ALONG, HEAD_N)
-           .translate((0, (HEAD_ALONG - HEAD_BACK) / 2, HEAD_N_CTR)))
+    """Head envelope at fold angle phi: main box + the under-mouth flywheel
+    lobe (the -151 bulge exists ONLY near the mouth, local y 170..250 -- a
+    full-length box falsely swept it through the front wheels, gate G7)."""
+    main = (cq.Workplane("XY")
+            .box(HEAD_W, HEAD_BACK + HEAD_ALONG, 118.0 + 97.0)
+            .translate((0, (HEAD_ALONG - HEAD_BACK) / 2, (118.0 - 97.0) / 2)))
+    lobe = (cq.Workplane("XY").box(44, 80, 61)
+            .translate((0, 210, -120.5)))
+    box = main.union(lobe)
     return box.rotate((0, 0, 0), (1, 0, 0), phi).translate(PIVOT)
 
 

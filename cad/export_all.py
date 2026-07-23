@@ -116,6 +116,17 @@ def _place_accelerator():
     named.append(("Arm hub (x2)", hub, "#9a6bbf"))
     named.append(("_hub_L", hub.mirror("YZ"), "#9a6bbf"))
 
+    # Under-mouth flywheel (HARDWARE proxy: 3" flex wheel + mass disc on a hex
+    # shaft) poking up through the plow/deck slots, and its printed mounts.
+    fly = (cq.Workplane("XY").circle(P.FLY_DIA / 2).extrude(P.FLY_W)
+           .translate((0, 0, -P.FLY_W / 2))
+           .rotate((0, 0, 0), (0, 1, 0), 90)
+           .translate((0, P.FLY_Y, P.FLY_Z)))
+    named.append(("Flywheel (3\" flex + mass disc, hw)", fly, "#e0b020"))
+    fm = importlib.import_module("cad.parts.fly_mount").make()
+    named.append(("Flywheel mount (x2)", fm, "#41b06a"))
+    named.append(("_fm_L", fm.mirror("YZ"), "#41b06a"))
+
     ball = ((0.0, -8.0, -ZH + P.TRIBALL_DIA / 2.0), P.TRIBALL_DIA / 2.0)
     return named, ball
 

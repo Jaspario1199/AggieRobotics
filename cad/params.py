@@ -65,3 +65,16 @@ PULLEY_SPOKES = 5         # lightening windows in the pulley
 # Decks sit wider than the TIP so the 3-lobe ball can't pop out as it tumbles in.
 SIDE_INNER_HALF = 85.0    # mm, half the deck-to-deck gap (2*85 = 170 > 157 tip)
 PLOW_DEG = 20.0           # deg, front plow-blade rake (down-and-forward)
+
+# --- Flywheel launcher (under-mouth, reversible) ---------------------------
+# A 3" VEX flex wheel + fabricated mass disc under the mouth, poking up through
+# slots in the plow plate / bottom deck. Spinning INWARD it is an intake-assist
+# roller; stopped it retains; reversed at speed it fires the ball out of the
+# mouth, squeezing it against the throat lip's hood TONGUE above. No extra DOF.
+FLY_DIA = 76.2            # mm, 3" flex wheel
+FLY_W = 35.0              # mm, wheel width (across the mouth)
+FLY_Y = 77.0              # mm, wheel axis y (head frame; mouth edge at 85)
+FLY_TOP = -73.0           # mm, wheel top: 8 above the plow plate top (-81)
+FLY_Z = FLY_TOP - FLY_DIA / 2   # wheel axis z (-111.1)
+FLY_RPM = 3000.0          # 600 RPM cartridge x 5 (12T:60T) at the wheel
+LAUNCH_DEG = 40.0         # exit angle set by the tongue/flare hood geometry

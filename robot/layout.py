@@ -34,9 +34,9 @@ def _box(dx, dy, dz, c=(0, 0, 0)):
 def _electronics():
     """Battery / brain / air reservoir, low and rearward (counterweight)."""
     return [
-        ("Battery", _box(90, 90, 45, (-95, -95, A.DECK_Z + 25)), "#c24234"),
-        ("V5 Brain", _box(120, 80, 40, (95, -95, A.DECK_Z + 23)), "#586170"),
-        ("Air reservoir", _box(60, 170, 60, (0, -80, A.DECK_Z + 33)), "#41b06a"),
+        ("Battery", _box(90, 90, 45, (-95, -120, A.DECK_Z + 25)), "#c24234"),
+        ("V5 Brain", _box(120, 80, 40, (95, -120, A.DECK_Z + 23)), "#586170"),
+        ("Air reservoir", _box(60, 150, 60, (0, -105, A.DECK_Z + 33)), "#41b06a"),
     ]
 
 

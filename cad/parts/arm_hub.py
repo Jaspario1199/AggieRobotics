@@ -14,8 +14,11 @@ Modelled in HEAD-ASSEMBLY coordinates (the +X / right side): pivot axis at
 deck grid holes (G9a), web clears the deck (G9b), tabs clear the motor plate
 (G9c), boss clears the chassis-side pivot block (G9d).
 
-Print web-flat with the boss up; the tabs overhang -- use supports under them
-(or split at the web and bolt). PETG, 4+ walls, 50% infill: primary load path.
+Print WEB-FLAT (web on the bed): the boss stands as a cylinder and the tabs
+rise as vertical walls -- NO supports needed (the earlier note claiming
+otherwise was wrong; the tab bolt holes print sideways, fine at 4.9 mm).
+PETG, 4+ walls, 50% infill: primary load path. If bench tests show tab flex,
+the identical profile can be cut from VEX plate (legal fabricated metal).
 """
 
 from __future__ import annotations

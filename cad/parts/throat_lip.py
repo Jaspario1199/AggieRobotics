@@ -14,8 +14,9 @@ mouth is handled by the front_plow ramp). Three fused features:
     up-forward. Funnels a tumbling tri-ball down into the channel; its inner
     surface never dips below the channel plane, so nothing snags.
 
-Print plate-down; the flare overhangs toward vertical at its tip -- use a few
-supports under the last ~15 mm of arc, or split-print. PETG, 4 walls.
+Also carries the LAUNCHER HOOD TONGUE (centre strip the under-mouth flywheel
+squeezes the ball against) and INTEGRAL RIBS under the flare, so the part
+prints plate-down with NO support material. PETG, 4 walls.
 """
 
 from __future__ import annotations
@@ -27,12 +28,19 @@ from ..params import (
 )
 
 W = 2 * SIDE_INNER_HALF - 2.0   # width across the mouth (168)
-RI = 38.0                       # flare inner radius
-RO = 41.0                       # flare outer radius (3 mm wall)
+RI = 28.0                       # flare inner radius (slimmed for the stow cube)
+RO = 31.0                       # flare outer radius (3 mm wall)
 PL_THK = 4.0                    # mount-plate thickness
 PL_Y = 25.0                     # mount-plate reach back over the deck
 WALL_Y = 3.0                    # edge-wall thickness (forward of the deck edge)
 BOLT_X = 3 * VEX_GRID           # bolt columns at +/-38.1 (clear of the bores)
+RIB_T = 2.5                     # integral support ribs under the flare
+RIB_XS = (-56.0, 0.0, 56.0)
+
+# Launcher hood tongue: a center strip hanging below the channel plane that the
+# under-mouth flywheel squeezes the ball against (gate G5 checks the nip).
+TONGUE_HALF_W = 19.0   # narrower than the deck notch (20) - no deck clash
+TONGUE_DROP = 5.0               # how far below the channel plane it reaches
 
 # Deck forward edge (world +Y); local y=0 is that edge, local z=0 the deck top.
 EDGE = BARREL_LEN / 2 + 30.0
@@ -63,6 +71,35 @@ def make() -> cq.Workplane:
                       .translate((0, 0, cz + 300)))
 
     lip = plate.union(wall).union(flare)
+
+    # Integral support ribs under the flare (printability: the arc's underside
+    # prints onto these instead of support material; they also stiffen it).
+    for rx in RIB_XS:
+        rib = (cq.Workplane("YZ").workplane(offset=rx - RIB_T / 2)
+               .polyline([(WALL_Y, -PLATE_THK), (cy + RO - 2, -PLATE_THK),
+                          (WALL_Y, cz)])
+               .close().extrude(RIB_T))
+        lip = lip.union(rib)
+
+    # Launcher hood tongue: center strip below the channel plane, opposing the
+    # under-mouth flywheel. 45-deg chamfered on both edges so the intaking ball
+    # rides under it without snagging.
+    tongue = (cq.Workplane("XY")
+              .box(2 * TONGUE_HALF_W, PL_Y / 2 + WALL_Y,
+                   PLATE_THK + TONGUE_DROP, centered=(True, False, False))
+              .translate((0, -PL_Y / 2, -PLATE_THK - TONGUE_DROP)))
+    for sy, edge_y in ((1, WALL_Y), (-1, -PL_Y / 2)):
+        chm = (cq.Workplane("YZ").workplane(offset=-(TONGUE_HALF_W + 1))
+               .polyline([(edge_y, -PLATE_THK - TONGUE_DROP),
+                          (edge_y - sy * (TONGUE_DROP + 1),
+                           -PLATE_THK - TONGUE_DROP),
+                          (edge_y, -PLATE_THK + 1)])
+               .close().extrude(2 * (TONGUE_HALF_W + 1)))
+        try:
+            tongue = tongue.cut(chm)
+        except Exception:
+            pass
+    lip = lip.union(tongue)
 
     # Vertical bolt holes on the deck grid (columns +/-BOLT_X, two rows).
     for hx in (BOLT_X, -BOLT_X):

@@ -31,7 +31,8 @@ SPAN = 2 * SIDE_INNER_HALF      # blade width (170)
 PL_THK = 4.0                    # mount-plate thickness (= aperture intrusion)
 PL_Y = 25.0                     # mount-plate reach back over the deck
 BLADE_LEN = 72.0                # blade length along its face
-BOLT_X = 3 * VEX_GRID           # bolt columns at +/-38.1
+BOLT_X = 5 * VEX_GRID           # bolt columns at +/-63.5 (clear of fly mounts)
+FLY_SLOT_HALF = 22.0            # centre slot for the under-mouth flywheel
 
 EDGE = BARREL_LEN / 2 + 30.0
 BOLT_ROWS = [5 * VEX_GRID - EDGE, 6 * VEX_GRID - EDGE]
@@ -63,6 +64,11 @@ def make() -> cq.Workplane:
           .polyline([(-PL_Y, PL_THK), (-PL_Y + PL_THK, PL_THK), (-PL_Y, 0)])
           .close().extrude(SPAN + 2))
     plow = plow.cut(ch)
+
+    # Centre slot for the under-mouth flywheel (through plate AND blade root --
+    # the wheel pokes up through it; push loads go through the side sections).
+    plow = plow.cut(cq.Workplane("XY").box(2 * FLY_SLOT_HALF, 80, 80)
+                    .translate((0, -5, -10)))
 
     # Vertical bolt holes on the deck grid.
     for hx in (BOLT_X, -BOLT_X):

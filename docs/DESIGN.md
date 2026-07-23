@@ -783,6 +783,14 @@ regression-run after every change (`docs/gates_baseline.txt` → `docs/gates_aft
    down when the launcher hood CAD is integrated into the head assembly.
 
 ## 12. Change log
+- **v1.3** — flag-closure + launcher integration, all gate-driven (50 pass/0 fail):
+  lip gets integral ribs (support-free print) + the launcher HOOD TONGUE; deck/
+  plow slotted; **under-mouth reversible flywheel** (3" flex wheel + mass disc,
+  `fly_mount` ×2) — intake-assist / retain / launch with NO extra DOF; new gates
+  **G10** (mass 9.8 kg est., tip margin 24 mm) and **G11** (trajectory: 6.0 m/s,
+  barrier +727 mm, max range 3.83 m, apex 0.96 m — verify vs bar height); head
+  envelope now exact (no launcher length estimate); hub print orientation
+  corrected (web-flat = no supports). G7 18.5 mm / G8 11 mm margins.
 - **v1.2** — real arm-link CAD: `arm_hub` ×2 (hex-keyed web + boss, bolts to both
   decks) and `pivot_block` ×2 (chassis-side bearings), new gate **G9** (6 checks).
   G9 caught a phantom half-pitch bolt column → deck widened so the REAL 114.3 mm

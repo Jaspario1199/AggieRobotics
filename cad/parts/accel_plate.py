@@ -49,6 +49,12 @@ def make() -> cq.Workplane:
                  .moveTo(bx, by).slot2D(VEX_SHAFT_CLEAR + 22, VEX_SHAFT_CLEAR, 0)
                  .cutThruAll())
 
+    # Flywheel notch: the under-mouth launcher wheel passes through the deck at
+    # the muzzle centre (open to the forward edge). The part stays flip-
+    # symmetric; on the top deck the notch sits under the throat-lip plate.
+    plate = plate.cut(cq.Workplane("XY").box(55, 40, 40)
+                      .translate((HX - 15, 0, 0)))
+
     # 0.5" VEX grid across the whole deck, clear of the bores.
     holes = grid_points(
         OUTLINE, VEX_GRID, margin=VEX_HOLE / 2 + 3.0,
