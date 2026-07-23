@@ -27,6 +27,7 @@ PARTS = [
     "motor_plate",
     "arm_hub",
     "pivot_block",
+    "fly_mount",
 ]
 
 
