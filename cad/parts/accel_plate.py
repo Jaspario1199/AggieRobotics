@@ -31,6 +31,7 @@ HX = XO + 30.0
 # outboard of the motor plates -- the arm-hub tabs bolt there (gate G9a).
 HY = YO + 41.5
 OUTLINE = [(-HX, -HY), (HX, -HY), (HX, HY), (-HX, HY)]
+NOTCH_HALF = 32.0   # flywheel+disc notch half-width at the muzzle
 
 
 def make() -> cq.Workplane:
@@ -59,8 +60,10 @@ def make() -> cq.Workplane:
     # Flywheel notch: the under-mouth launcher wheel passes through the deck at
     # the muzzle centre (open to the forward edge). The part stays flip-
     # symmetric; on the top deck the notch sits under the throat-lip plate.
-    plate = plate.cut(cq.Workplane("XY").box(55, 40, 40)
-                      .translate((HX - 15, 0, 0)))
+    # (widened for the 1" wheel + O72 disc side-by-side; web to the +/-38.1
+    # grid column stays 3.65 mm)
+    plate = plate.cut(cq.Workplane("XY").box(94, 2 * NOTCH_HALF, 40)
+                      .translate((76, 0, 0)))
 
     # 0.5" VEX grid across the whole deck, clear of the bores.
     holes = grid_points(

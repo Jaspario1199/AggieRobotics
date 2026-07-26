@@ -72,7 +72,7 @@ PLOW_DEG = 20.0           # deg, front plow-blade rake (down-and-forward)
 # roller; stopped it retains; reversed at speed it fires the ball out of the
 # mouth, squeezing it against the throat lip's hood TONGUE above. No extra DOF.
 FLY_DIA = 76.2            # mm, 3" flex wheel
-FLY_W = 35.0              # mm, wheel width (across the mouth)
+FLY_W = 25.4              # mm, 1" flex wheel width (disc sits beside it)
 FLY_Y = 77.0              # mm, wheel axis y (head frame; mouth edge at 85)
 FLY_TOP = -73.0           # mm, wheel top: 8 above the plow plate top (-81)
 FLY_Z = FLY_TOP - FLY_DIA / 2   # wheel axis z (-111.1)

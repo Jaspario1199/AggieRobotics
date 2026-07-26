@@ -88,7 +88,8 @@ EDGE = P.BARREL_LEN / 2 + 30.0                               # deck fwd edge (y)
 PART_IDS = ["deck_top", "deck_bot", "pul_RF", "pul_RB", "pul_LF", "pul_LB",
             "belt_L", "belt_R", "lip_T", "plow", "motor_L", "motor_R",
             "hub_R", "hub_L", "fly", "fm_R", "fm_L",
-            "so_1", "so_2", "so_3", "so_4"]
+            "so_1", "so_2", "so_3", "so_4",
+            "fdp", "disc", "rail_R", "rail_L", "sensor"]
 
 INTENDED_CONTACT = {
     frozenset(("belt_L", "pul_LF")), frozenset(("belt_L", "pul_LB")),
@@ -102,6 +103,10 @@ INTENDED_CONTACT = {
     frozenset(("so_2", "deck_top")), frozenset(("so_2", "deck_bot")),
     frozenset(("so_3", "deck_top")), frozenset(("so_3", "deck_bot")),
     frozenset(("so_4", "deck_top")), frozenset(("so_4", "deck_bot")),
+    frozenset(("fdp", "deck_bot")), frozenset(("sensor", "deck_top")),
+    frozenset(("rail_R", "deck_top")), frozenset(("rail_R", "deck_bot")),
+    frozenset(("rail_L", "deck_top")), frozenset(("rail_L", "deck_bot")),
+    frozenset(("rail_R", "belt_R")), frozenset(("rail_L", "belt_L")),
 }
 
 
@@ -120,7 +125,9 @@ def gate1_parts():
     import importlib
     for name in ["belt_pulley", "drive_belt", "accel_plate", "throat_lip",
                  "front_plow", "motor_plate", "arm_hub", "pivot_block",
-                 "fly_mount"]:
+                 "fly_mount", "fly_drive_plate", "platen_rail", "mass_disc",
+                 "sensor_mount", "stow_cradle", "tracking_pod",
+                 "counterweight"]:
         try:
             mod = importlib.import_module(f"cad.parts.{name}")
             w = mod.make()
@@ -208,7 +215,7 @@ def gate3_ball_path(asm):
             "overlap<=1 mm3 at all stations", "PASS")
 
     # BODY sphere vs the rigid pulley columns (across-belt presentation).
-    x_parts = ["pul_RF", "pul_RB", "pul_LF", "pul_LB"]
+    x_parts = ["pul_RF", "pul_RB", "pul_LF", "pul_LB", "rail_R", "rail_L"]
     xbbs = {k: bbox(asm[k]) for k in x_parts}
     worst = {}
     for y in (-YB, 0.0, YB):
@@ -244,7 +251,9 @@ def gate4_mounts(asm):
                  ("hub_R", "deck_top"), ("hub_R", "deck_bot"),
                  ("hub_L", "deck_top"), ("hub_L", "deck_bot"),
                  ("so_1", "deck_top"), ("so_1", "deck_bot"),
-                 ("so_3", "deck_top"), ("so_3", "deck_bot")]:
+                 ("so_3", "deck_top"), ("so_3", "deck_bot"),
+                 ("fdp", "deck_bot"), ("sensor", "deck_top"),
+                 ("rail_R", "deck_top"), ("rail_R", "deck_bot")]:
         d = dist(asm[a], asm[b])
         ov = ivol(asm[a], asm[b])
         if not math.isnan(ov) and ov > 1.0:
@@ -479,7 +488,8 @@ def gate10_mass_tipping():
     DENS = 0.0008          # g/mm3, PETG at 4 walls / 40% infill (assumption)
     DENS_TPU = 0.0009
     QTY = {"belt_pulley": 4, "drive_belt": 2, "accel_plate": 2, "throat_lip": 1,
-           "front_plow": 1, "motor_plate": 2, "arm_hub": 2, "fly_mount": 2}
+           "front_plow": 1, "motor_plate": 2, "arm_hub": 2, "fly_mount": 2,
+           "fly_drive_plate": 1, "platen_rail": 2, "sensor_mount": 1}
     head_print = 0.0
     for n, q in QTY.items():
         if n not in G1CACHE:
@@ -507,6 +517,7 @@ def gate10_mass_tipping():
         (2 * G1CACHE["pivot_block"].val().Volume() * DENS + 600, 155.0),
         (345, 155.0),                  # pivot motor + gears on the tower
         (300, 0.0),                    # cables/misc
+        (250, -100.0),                 # stow cradles + tracking pods (printed)
     ]
     M = head_m + sum(mm for mm, _ in chassis) + 138.0
     My = head_m * head_y + sum(mm * yy for mm, yy in chassis) + 138.0 * ball_y
@@ -594,6 +605,55 @@ def gate14_drive():
         "PASS" if a0 >= 3.5 else "FAIL")
 
 
+def gate15_arm_hardware():
+    """Hard-stop, stow cradle, and disc packaging (round-4 parts)."""
+    import robot.arm as A
+    import cad.parts.arm_hub as ah
+    import cad.parts.pivot_block as pb
+    import cad.parts.fly_mount as fm
+    import cad.parts.mass_disc as md
+    # a) stop-pin seat arithmetic: pin bottom == horn top at LAUNCH (phi=0)
+    pin_bot = A.PIVOT[2] - 6.0
+    horn_top = A.TOWER_TOP + (pb.BORE_H - 15.0) + 9.0
+    add("G15", "hard-stop pin seats on horn",
+        f"pin {pin_bot:.1f} vs horn {horn_top:.1f} mm",
+        "PASS" if abs(pin_bot - horn_top) <= 0.5 else "FAIL",
+        "deployed pose held mechanically, motor at ~0 A")
+    eng = (ah.X0 + ah.WEB_T + 12.0) - A.BLOCK_X0
+    add("G15", "pin-horn engagement", f"{eng:.1f} mm",
+        "PASS" if eng >= 3.0 else "FAIL")
+    # b) stow cradle: seat gap + no clash through the fold sweep
+    import cad.parts.stow_cradle as sc
+    gap = (A.PIVOT[2] - A.HEAD_N_HI) - sc.SEAT_Z
+    add("G15", "stow cradle seat gap", f"{gap:.1f} mm (foam pad)",
+        "PASS" if 0.5 <= gap <= 2.0 else "FAIL")
+    cradles = [sc.make().translate((sx * 60, 0, 0)) for sx in (1, -1)]
+    dmin = float("inf")
+    for phi in A.SWEEP:
+        if abs(phi - A.STOW) < 1:
+            continue
+        hb = bbox(A.head_at(phi))
+        for c in cradles:
+            if not bb_overlap(hb, bbox(c), tol=30):
+                continue
+            d = dist(A.head_at(phi), c)
+            if not math.isnan(d):
+                dmin = min(dmin, d)
+    val = ">30 mm everywhere" if dmin == float("inf") else f"{dmin:.1f} mm"
+    add("G15", "cradle clear of fold sweep", val,
+        "PASS" if dmin == float("inf") or dmin >= 2.0 else "FAIL")
+    # c) wheel + disc fit inside the deck notch, disc below the wheel surface
+    import cad.parts.accel_plate as ap2
+    span = P.FLY_W / 2 + md.THK + 2.0
+    add("G15", "wheel+disc inside the deck notch",
+        f"span {span:.1f} vs notch half {ap2.NOTCH_HALF:.1f} mm",
+        "PASS" if span <= ap2.NOTCH_HALF else "FAIL")
+    sub = (P.FLY_TOP - 0.0) - (P.FLY_Z + md.DIA / 2)
+    add("G15", "disc below the wheel working surface", f"{sub:.1f} mm",
+        "PASS" if sub >= 1.5 else "FAIL",
+        "the ball must ride rubber, never steel")
+
+
 def main():
     print("Running gates (booleans on real B-rep - takes a minute)...\n")
     gate1_parts()
@@ -614,6 +674,7 @@ def main():
     gate12_floor()
     gate13_current()
     gate14_drive()
+    gate15_arm_hardware()
 
     wid = max(len(r[1]) for r in ROWS) + 2
     cur = None

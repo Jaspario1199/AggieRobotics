@@ -33,7 +33,7 @@ PL_Y = 25.0                     # mount-plate reach back over the deck
 BLADE_LEN = 72.0                # blade length along its face
 BLADE_THK = 6.0                 # impact part: thicker than the 4 mm plate (R3 D4)
 BOLT_X = 5 * VEX_GRID           # bolt columns at +/-63.5 (clear of fly mounts)
-FLY_SLOT_HALF = 22.0            # centre slot for the under-mouth flywheel
+FLY_SLOT_HALF = 33.0            # centre slot for the wheel + mass disc
 
 EDGE = BARREL_LEN / 2 + 30.0
 BOLT_ROWS = [5 * VEX_GRID - EDGE, 6 * VEX_GRID - EDGE]
@@ -69,9 +69,9 @@ def make() -> cq.Workplane:
 
     # Centre slot for the under-mouth flywheel (through plate AND blade root --
     # the wheel pokes up through it; push loads go through the side sections).
-    slot = (cq.Workplane("XY").box(2 * FLY_SLOT_HALF, 80, 80)
+    slot = (cq.Workplane("XY").box(2 * FLY_SLOT_HALF, 100, 80)
             .edges("|Z").fillet(6.0)          # R3 D4: no square-corner crack starters
-            .translate((0, -5, -10)))
+            .translate((0, -7.5, -10)))
     plow = plow.cut(slot)
 
     # Vertical bolt holes on the deck grid.

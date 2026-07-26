@@ -35,6 +35,13 @@ def make() -> cq.Workplane:
             .center(0, BORE_H).circle(TOP_R).extrude(WALL_T))
     blk = base.union(up).union(head)
 
+    # Hard-stop HORN: the arm_hub's pin seats on this face at LAUNCH (phi=0),
+    # so the deployed pose is a mechanical stop, not motor current (G15).
+    horn = (cq.Workplane("XY")
+            .box(WALL_T, 62.0, 9.0, centered=(True, False, False))
+            .translate((0, 10.0, BORE_H - 15.0)))
+    blk = blk.union(horn)
+
     # Bearing bore (a VEX bearing flat snaps over this on the shaft side).
     bore = (cq.Workplane("YZ").workplane(offset=-WALL_T / 2 - 1)
             .center(0, BORE_H).circle(VEX_SHAFT_CLEAR / 2).extrude(WALL_T + 2))

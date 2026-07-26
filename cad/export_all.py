@@ -28,6 +28,13 @@ PARTS = [
     "arm_hub",
     "pivot_block",
     "fly_mount",
+    "fly_drive_plate",
+    "platen_rail",
+    "mass_disc",
+    "sensor_mount",
+    "stow_cradle",
+    "tracking_pod",
+    "counterweight",
 ]
 
 
@@ -139,6 +146,21 @@ def _place_accelerator():
             named.append(("Muzzle standoff (x4, hw)" if first else "_so",
                           so, "#c9cfd8"))
             first = False
+
+    # Flywheel drive plate (one, +x side), mass disc (left of the wheel),
+    # platen rails behind each belt inner run, and the ball-present sensor.
+    fdp = importlib.import_module("cad.parts.fly_drive_plate").make()
+    named.append(("Flywheel drive plate", fdp, "#d98c3f"))
+    disc = (importlib.import_module("cad.parts.mass_disc").make()
+            .rotate((0, 0, 0), (0, 1, 0), 90)
+            .translate((13.7, P.FLY_Y, P.FLY_Z)))
+    named.append(("Mass disc (steel, fab)", disc, "#aeb4bd"))
+    rail = importlib.import_module("cad.parts.platen_rail").make()
+    named.append(("Platen rail (x2)", rail, "#7a5f3a"))
+    named.append(("_rail_L", rail.mirror("YZ"), "#7a5f3a"))
+    named.append(("Ball sensor mount",
+                  importlib.import_module("cad.parts.sensor_mount").make(),
+                  "#3fae9a"))
 
     ball = ((0.0, -8.0, -ZH + P.TRIBALL_DIA / 2.0), P.TRIBALL_DIA / 2.0)
     return named, ball

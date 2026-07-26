@@ -843,6 +843,13 @@ assembly-order doc + spares kit (F6). Bench items unchanged: throat capture,
 launch k-factor, TPU lace fatigue.
 
 ## 12. Change log
+- **v1.5 — BUILD-COMPLETE.** All tracked parts modeled: fly_drive_plate,
+  hard-stop pin+horn (in hub/block), stow_cradle ×2, platen_rail ×2,
+  sensor_mount, tracking_pod ×2, mass_disc + counterweight (fabricated STEPs),
+  hub cable boss. Launcher packaging re-solved when gates caught disc clashes:
+  1" flex wheel + O72×16 disc inside a widened deck notch, 2 mm below the wheel
+  surface. 16 parts, 26-solid assembly, **77 pass / 0 fail**, docs/ASSEMBLY.md
+  build guide added. Remaining: bench items + firmware (listed in ASSEMBLY.md).
 - **v1.4** — round-3 hard critique (§17) systematically fixed: 21-part assembly,
   8 motors, re-geared drive, laced belts, fixed bores, standoffs, honest rear-work
   claim, pose-true trajectory gate, power/floor/drive gates. 60 pass / 0 fail.

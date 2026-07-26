@@ -76,6 +76,23 @@ def make() -> cq.Workplane:
     # NO set screw (R3 D1): the hex bore keys torque; axial retention is VEX
     # shaft collars on the pivot shaft either side of the boss (BOM S4).
 
+    # Deployed hard-stop PIN: at LAUNCH (phi=0) it lands on the pivot_block's
+    # horn, carrying the head's gravity torque so the pivot motor holds ZERO
+    # current (R3 F6/F7; gate G15 checks the seat arithmetic + engagement).
+    pin = (cq.Workplane("YZ").workplane(offset=X0 + WEB_T)
+           .center(PIV_Y + 60.0, 0).circle(6.0).extrude(12.0))
+    hub = hub.union(pin)
+
+    # Cable boss: strain-relief anchor for the head's 3 motor + sensor cables
+    # crossing the fold (R3 F13) -- zip ties thread the two holes.
+    cb = (cq.Workplane("YZ").workplane(offset=X0 + WEB_T)
+          .center(PIV_Y + 40.0, 25.0).rect(14.0, 18.0).extrude(6.0))
+    hub = hub.union(cb)
+    for dz in (5.0, -5.0):
+        th = (cq.Workplane("XZ").workplane(offset=-(PIV_Y + 40.0) - 3)
+              .center(X0 + WEB_T + 3.0, 25.0 + dz).circle(2.25).extrude(6))
+        hub = hub.cut(th)
+
     # Tab bolt holes: one column, two rows, straight through BOTH tabs.
     for hy in BOLT_ROWS:
         hole = (cq.Workplane("XY").circle(VEX_HOLE / 2)

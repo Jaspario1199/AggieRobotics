@@ -23,14 +23,15 @@ from ..params import (
     FLY_Y, FLY_Z, FLY_W, BARREL_LEN,
 )
 
-X0 = FLY_W / 2 + 2.0        # arm inner face: 2 mm outside the wheel (19.5)
+X0 = 33.7                   # arm inner face: 2 mm outside the O72 mass disc
+                            # (wheel +12.7 .. disc 13.7..29.7 .. arm 33.7)
 ARM_T = 8.0
 BASE_T = 4.0
 EDGE = BARREL_LEN / 2 + 30.0
 # Rows 3-4 x GRID: the plow plate covers world y 60..85 on the deck's inner
 # face, so nuts at rows 38.1/50.8 land CLEAR of it (R3 A4).
-BOLT_PTS = [(2 * VEX_GRID, 3 * VEX_GRID), (3 * VEX_GRID, 3 * VEX_GRID),
-            (2 * VEX_GRID, 4 * VEX_GRID), (3 * VEX_GRID, 4 * VEX_GRID)]
+BOLT_PTS = [(3 * VEX_GRID, 3 * VEX_GRID), (4 * VEX_GRID, 3 * VEX_GRID),
+            (3 * VEX_GRID, 4 * VEX_GRID), (4 * VEX_GRID, 4 * VEX_GRID)]
 
 Z_FACE = -(SIDE_INNER_HALF + PLATE_THK)     # bottom deck outer face (-91)
 
@@ -38,10 +39,11 @@ Z_FACE = -(SIDE_INNER_HALF + PLATE_THK)     # bottom deck outer face (-91)
 def make() -> cq.Workplane:
     # Base plate on the deck's outer face, spanning the bolt columns.
     # base inner edge at x=20: clear of the wheel disc (x <= 17.5)
+    # inner edge at x=32: clear of the disc's swept plane (outer 29.7)
     base = (cq.Workplane("XY")
-            .box(30.0, 2 * VEX_GRID + 20, BASE_T,
+            .box(32.0, 2 * VEX_GRID + 20, BASE_T,
                  centered=(True, True, False))
-            .translate((35.0, 3.5 * VEX_GRID, Z_FACE - BASE_T)))
+            .translate((48.0, 3.5 * VEX_GRID, Z_FACE - BASE_T)))
 
     # Drop arm: straight wall from the base down to the bearing boss.
     arm = (cq.Workplane("YZ").workplane(offset=X0)
